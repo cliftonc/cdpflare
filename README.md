@@ -1,8 +1,6 @@
 # cdpflare
 
-Stream JSON data to Apache Iceberg tables on Cloudflare's data platform.
-
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/your-org/cdpflare)
+Stream JSON analytics events to Apache Iceberg tables on Cloudflare's data platform.
 
 ## Overview
 
@@ -24,53 +22,126 @@ cdpflare provides a complete solution for collecting analytics events and storin
                         └─────────────────┘     └─────────────────┘
 ```
 
+## Prerequisites
+
+Before you begin, you'll need:
+
+### 1. Cloudflare Account
+
+Sign up for a free Cloudflare account at **[dash.cloudflare.com/sign-up](https://dash.cloudflare.com/sign-up)**
+
+> **Note**: R2 and Pipelines are available on all plans, including free. You may need to add a payment method to enable R2.
+
+### 2. Node.js & pnpm
+
+- **Node.js 18+**: [nodejs.org](https://nodejs.org/)
+- **pnpm 8+**: `npm install -g pnpm`
+
 ## Quick Start
 
-### Prerequisites
-
-- Node.js 18+
-- pnpm 8+
-- Cloudflare account with R2 enabled
-- Wrangler CLI (`npm install -g wrangler`)
-
-### Installation
+### Step 1: Clone & Install
 
 ```bash
 git clone https://github.com/your-org/cdpflare.git
 cd cdpflare
 pnpm install
-pnpm build
 ```
 
-### Setup Infrastructure
+### Step 2: Login to Cloudflare
+
+The setup script requires authentication with Cloudflare. Run:
 
 ```bash
-# Create R2 bucket, Data Catalog, and Pipeline
+npx wrangler login
+```
+
+This opens a browser window to authorize wrangler. Once complete, you'll see a success message.
+
+### Step 3: Setup Infrastructure
+
+Run the setup script to create R2 bucket, Data Catalog, Stream, Sink, and Pipeline:
+
+```bash
 pnpm setup
 ```
 
-### Deploy Workers
+The script will:
+1. Check you're logged in to Cloudflare
+2. Create an R2 bucket with Data Catalog enabled
+3. Create a Pipeline stream with the event schema
+4. Create a sink to write Parquet files to R2
+5. Create a pipeline with SQL transformation
+6. **Output your Stream ID** - you'll need this for the next step
 
-```bash
-# Deploy ingestion worker
-pnpm deploy:ingest
+### Step 4: Configure the Worker
 
-# Configure query worker secrets
-wrangler secret put CF_ACCOUNT_ID --config workers/query-api/wrangler.jsonc
-wrangler secret put CF_API_TOKEN --config workers/query-api/wrangler.jsonc
+After setup completes, you'll see output like:
 
-# Deploy query worker
-pnpm deploy:query
+```
+┌────────────────────────────────────────────────────────────┐
+│  IMPORTANT: Copy your Stream ID for wrangler.jsonc        │
+└────────────────────────────────────────────────────────────┘
+
+  Stream ID: abc123def456...
+
+  Update workers/event-ingest/wrangler.jsonc:
+  "pipelines": [
+    {
+      "pipeline": "abc123def456...",
+      "binding": "PIPELINE"
+    }
+  ]
 ```
 
-### Configure Analytics SDK
+Edit `workers/event-ingest/wrangler.jsonc` and uncomment/update the pipelines section with your Stream ID:
+
+```jsonc
+{
+  // ... other config ...
+
+  "pipelines": [
+    {
+      "pipeline": "YOUR_STREAM_ID_HERE",
+      "binding": "PIPELINE"
+    }
+  ]
+}
+```
+
+### Step 5: Deploy
+
+```bash
+pnpm deploy:ingest
+```
+
+You'll see output with your worker URL:
+```
+Deployed cdpflare-event-ingest triggers
+  https://cdpflare-event-ingest.YOUR-SUBDOMAIN.workers.dev
+```
+
+### Step 6: Test
+
+Send a test event:
+
+```bash
+curl -X POST https://cdpflare-event-ingest.YOUR-SUBDOMAIN.workers.dev/v1/track \
+  -H "Content-Type: application/json" \
+  -d '{"userId":"test-user","event":"Test Event","properties":{"key":"value"}}'
+```
+
+You should receive: `{"success":true,"count":1}`
+
+## SDK Integration
+
+### RudderStack / Segment
 
 ```javascript
 import { Analytics } from '@rudderstack/analytics-js';
 
 const analytics = new Analytics({
-  writeKey: 'your-write-key', // or any value if auth disabled
-  dataPlaneUrl: 'https://cdpflare-event-ingest.your-subdomain.workers.dev'
+  writeKey: 'any-value', // Required by SDK, not validated if AUTH_ENABLED=false
+  dataPlaneUrl: 'https://cdpflare-event-ingest.YOUR-SUBDOMAIN.workers.dev'
 });
 
 // Track events
@@ -86,40 +157,21 @@ analytics.identify('user-123', {
 });
 ```
 
-### Query Data
+### Direct HTTP
 
 ```bash
-# Via wrangler CLI
-npx wrangler r2 sql query "your-warehouse" "SELECT * FROM analytics.events LIMIT 10"
-
-# Via Query API
-curl -X POST https://cdpflare-query-api.your-subdomain.workers.dev/query \
+# Track event
+curl -X POST https://YOUR-WORKER.workers.dev/v1/track \
   -H "Content-Type: application/json" \
-  -d '{"sql": "SELECT * FROM analytics.events LIMIT 10"}'
-```
+  -d '{"userId":"user-123","event":"Button Clicked","properties":{"button":"signup"}}'
 
-## Project Structure
-
-```
-cdpflare/
-├── packages/
-│   ├── core/           # Shared types and validation
-│   ├── ingest/         # Ingestion library (Hono)
-│   └── query/          # Query library (Hono)
-├── workers/
-│   ├── event-ingest/   # Ingestion worker
-│   └── query-api/      # Query API worker
-├── scripts/
-│   ├── setup-pipeline.ts   # Infrastructure setup
-│   └── teardown.ts         # Infrastructure cleanup
-├── templates/
-│   ├── schema.events.json  # Event schema
-│   └── .env.example        # Environment template
-└── docs/
-    ├── getting-started.md
-    ├── configuration.md
-    ├── sdk-integration.md
-    └── querying.md
+# Batch events
+curl -X POST https://YOUR-WORKER.workers.dev/v1/batch \
+  -H "Content-Type: application/json" \
+  -d '{"batch":[
+    {"type":"track","userId":"u1","event":"Page View"},
+    {"type":"identify","userId":"u1","traits":{"name":"John"}}
+  ]}'
 ```
 
 ## API Endpoints
@@ -137,51 +189,70 @@ cdpflare/
 | `/v1/alias` | POST | Single alias event |
 | `/health` | GET | Health check |
 
-### Query Worker
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/query` | POST | Execute SQL query |
-| `/tables/:namespace` | GET | List tables |
-| `/tables/:namespace/:table` | GET | Describe table |
-| `/health` | GET | Health check |
-
 ## Configuration
 
-See [Configuration Guide](docs/configuration.md) for detailed environment variables.
-
-### Ingestion Worker
+### Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `AUTH_ENABLED` | `false` | Require authentication |
-| `AUTH_TOKEN` | - | API token (if auth enabled) |
-| `ALLOWED_ORIGINS` | `*` | CORS allowed origins |
+| `AUTH_TOKEN` | - | API token (set as secret if auth enabled) |
+| `ALLOWED_ORIGINS` | `*` | CORS allowed origins (comma-separated) |
 
-### Query Worker
+### Enable Authentication
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `CF_ACCOUNT_ID` | Yes | Cloudflare account ID |
-| `CF_API_TOKEN` | Yes | Cloudflare API token |
-| `WAREHOUSE_NAME` | Yes | R2 SQL warehouse name |
-| `API_TOKEN` | No | Optional auth token |
+```bash
+# Set AUTH_ENABLED in wrangler.jsonc vars, then:
+npx wrangler secret put AUTH_TOKEN --config workers/event-ingest/wrangler.jsonc
+# Enter your secret token when prompted
 
-## Documentation
+pnpm deploy:ingest
+```
 
-- [Getting Started](docs/getting-started.md)
-- [Configuration](docs/configuration.md)
-- [SDK Integration](docs/sdk-integration.md)
-- [Querying Data](docs/querying.md)
+Clients must then include the token:
+```bash
+curl -X POST https://YOUR-WORKER.workers.dev/v1/track \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"userId":"test","event":"Test"}'
+```
+
+## Query Data
+
+### Via Wrangler CLI
+
+```bash
+npx wrangler r2 sql query "YOUR_ACCOUNT_ID_cdpflare-data" \
+  "SELECT * FROM analytics.events LIMIT 10"
+```
+
+### Via External Tools
+
+Connect PyIceberg, DuckDB, or Spark to your R2 Data Catalog. See [Cloudflare R2 SQL docs](https://developers.cloudflare.com/r2-sql/) for connection details.
+
+## Project Structure
+
+```
+cdpflare/
+├── packages/
+│   ├── core/           # Shared types and validation
+│   ├── ingest/         # Ingestion library (Hono)
+│   └── query/          # Query library (Hono)
+├── workers/
+│   ├── event-ingest/   # Ingestion worker
+│   └── query-api/      # Query API worker
+├── scripts/
+│   └── setup-pipeline.ts   # Infrastructure setup
+└── templates/
+    └── schema.events.json  # Event schema
+```
 
 ## Development
 
 ```bash
-# Run ingest worker locally
-pnpm dev:ingest
-
-# Run query worker locally
-pnpm dev:query
+# Run ingest worker locally (with remote pipeline binding)
+cd workers/event-ingest
+npx wrangler dev --remote
 
 # Build all packages
 pnpm build
@@ -193,18 +264,42 @@ pnpm typecheck
 ## Cleanup
 
 ```bash
-# Delete all infrastructure (keeps data)
-pnpm teardown -- --keep-bucket
+# Delete pipeline resources
+npx wrangler pipelines delete cdpflare_events_pipeline
+npx wrangler pipelines sinks delete cdpflare_events_sink
+npx wrangler pipelines streams delete cdpflare_events_stream
 
-# Delete everything including data
-pnpm teardown
+# Delete R2 bucket (will fail if not empty)
+npx wrangler r2 bucket delete cdpflare-data
 ```
+
+## Troubleshooting
+
+### "send is not a function" error
+
+Ensure `compatibility_date` in `wrangler.jsonc` is `"2025-01-01"` or later. The Pipelines `send()` method requires this.
+
+### "Not logged in" error
+
+Run `npx wrangler login` and complete the browser authorization flow.
+
+### Pipeline binding not working
+
+1. Verify your Stream ID is correct in `wrangler.jsonc`
+2. Run `npx wrangler pipelines streams list` to see your streams
+3. Redeploy after updating the config: `pnpm deploy:ingest`
 
 ## Limitations
 
-- **Cloudflare Pipelines**: Currently in open beta
-- **R2 SQL**: Read-only, no joins/aggregations yet (coming H1 2026)
-- **Deploy Button**: Pipelines not auto-provisioned (requires manual setup)
+- **Cloudflare Pipelines**: Currently in open beta - API may change
+- **R2 SQL**: Read-only, limited query support (improving in 2026)
+- **Local Development**: Pipelines require `--remote` flag for full testing
+
+## Links
+
+- [Cloudflare Pipelines Docs](https://developers.cloudflare.com/pipelines/)
+- [R2 Data Catalog](https://developers.cloudflare.com/r2/data-catalog/)
+- [R2 SQL](https://developers.cloudflare.com/r2-sql/)
 
 ## License
 

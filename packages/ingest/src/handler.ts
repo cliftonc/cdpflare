@@ -13,7 +13,8 @@ export interface PipelineBinding {
 }
 
 export interface IngestEnv {
-  PIPELINE: PipelineBinding;
+  PIPELINE?: PipelineBinding;
+  STREAM_HTTP_ENDPOINT?: string;  // HTTP endpoint for stream ingestion
   AUTH_ENABLED?: string;
   AUTH_TOKEN?: string;
   ALLOWED_ORIGINS?: string;
@@ -125,9 +126,10 @@ async function handleSingleEventRequest(c: IngestContext, eventType: string) {
  */
 async function sendToPipeline(c: IngestContext, events: FlattenedEvent[]) {
   try {
-    await c.env.PIPELINE.send(events);
+    await c.env.PIPELINE!.send(events);
   } catch (err) {
-    console.error('Pipeline send error:', err);
+    const error = err as Error;
+    console.error('Pipeline send error:', error.message);
     return c.json(
       { success: false, message: 'Failed to send events to pipeline' } satisfies IngestResponse,
       500

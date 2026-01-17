@@ -135,6 +135,7 @@ export interface AnalyticsBatch {
 /**
  * Flattened event structure for Iceberg storage
  * All fields use snake_case for SQL compatibility
+ * Timestamps are Unix milliseconds for Cloudflare Pipelines
  */
 export interface FlattenedEvent {
   message_id: string;
@@ -146,7 +147,7 @@ export interface FlattenedEvent {
   properties: Record<string, unknown> | null;
   traits: Record<string, unknown> | null;
   context: EventContext | null;
-  timestamp: string;
-  sent_at: string | null;
-  received_at: string;
+  timestamp: number;
+  sent_at: number | null;
+  received_at: number;
 }

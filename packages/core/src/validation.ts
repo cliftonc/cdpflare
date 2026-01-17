@@ -98,9 +98,31 @@ export function toSnakeCase(str: string): string {
 }
 
 /**
+ * Convert a timestamp to Unix milliseconds
+ * Accepts ISO strings, Date objects, or Unix ms numbers
+ */
+export function toUnixMs(value: string | number | Date | undefined | null): number | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  if (typeof value === 'number') {
+    return value;
+  }
+  if (value instanceof Date) {
+    return value.getTime();
+  }
+  // Parse ISO string
+  const parsed = Date.parse(value);
+  return isNaN(parsed) ? null : parsed;
+}
+
+/**
  * Flatten an analytics event for Iceberg storage
+ * Timestamps are converted to Unix milliseconds for Cloudflare Pipelines
  */
 export function flattenEvent(event: AnalyticsEvent, receivedAt: string): FlattenedEvent {
+  const receivedAtMs = toUnixMs(receivedAt) || Date.now();
+
   return {
     message_id: event.messageId || generateMessageId(),
     type: event.type,
@@ -111,9 +133,9 @@ export function flattenEvent(event: AnalyticsEvent, receivedAt: string): Flatten
     properties: 'properties' in event ? event.properties || null : null,
     traits: 'traits' in event ? event.traits || null : null,
     context: event.context || null,
-    timestamp: event.timestamp || receivedAt,
-    sent_at: event.sentAt || null,
-    received_at: receivedAt,
+    timestamp: toUnixMs(event.timestamp) || receivedAtMs,
+    sent_at: toUnixMs(event.sentAt),
+    received_at: receivedAtMs,
   };
 }
 

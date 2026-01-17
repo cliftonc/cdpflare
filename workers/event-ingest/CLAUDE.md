@@ -39,14 +39,15 @@ The worker is a thin wrapper around `@cdpflare/ingest`.
 {
   "name": "cdpflare-event-ingest",
   "main": "src/index.ts",
-  "compatibility_date": "2024-01-01",
+  // IMPORTANT: 2025-01-01 or later required for Pipelines send() method
+  "compatibility_date": "2025-01-01",
   "compatibility_flags": ["nodejs_compat"],
 
   "vars": {
     "AUTH_ENABLED": "false"
   },
 
-  // Uncomment after running pnpm setup
+  // Configure after running pnpm setup with your stream ID
   "pipelines": [
     {
       "pipeline": "cdpflare-events-pipeline",
