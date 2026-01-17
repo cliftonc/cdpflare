@@ -108,7 +108,7 @@ Edit `workers/event-ingest/wrangler.jsonc` and uncomment/update the pipelines se
 }
 ```
 
-### Step 5: Deploy
+### Step 5: Deploy Ingest Worker
 
 ```bash
 pnpm deploy:ingest
@@ -120,7 +120,7 @@ Deployed cdpflare-event-ingest triggers
   https://cdpflare-event-ingest.YOUR-SUBDOMAIN.workers.dev
 ```
 
-### Step 6: Test
+### Step 6: Test Ingestion
 
 Send a test event:
 
@@ -131,6 +131,59 @@ curl -X POST https://cdpflare-event-ingest.YOUR-SUBDOMAIN.workers.dev/v1/track \
 ```
 
 You should receive: `{"success":true,"count":1}`
+
+### Step 7: Configure Query API (Optional)
+
+To query your data via HTTP, set up the Query API worker:
+
+1. **Get your Cloudflare Account ID** from the dashboard URL or Overview page
+
+2. **Create an API Token** at [dash.cloudflare.com/profile/api-tokens](https://dash.cloudflare.com/profile/api-tokens) with:
+   - **Account** → Workers R2 Storage → Edit
+
+3. **Configure the worker**:
+
+```bash
+# Set the warehouse name (same as your bucket name with account ID prefix)
+# Format: {ACCOUNT_ID}_{BUCKET_NAME} (e.g., "abc123_cdpflare-data")
+```
+
+Edit `workers/query-api/wrangler.jsonc`:
+```jsonc
+{
+  "vars": {
+    "WAREHOUSE_NAME": "YOUR_ACCOUNT_ID_cdpflare-data"
+  }
+}
+```
+
+4. **Set secrets**:
+
+```bash
+npx wrangler secret put CF_ACCOUNT_ID --config workers/query-api/wrangler.jsonc
+# Enter your account ID when prompted
+
+npx wrangler secret put CF_API_TOKEN --config workers/query-api/wrangler.jsonc
+# Enter your API token when prompted
+```
+
+5. **Deploy**:
+
+```bash
+pnpm deploy:query
+```
+
+### Step 8: Test Query API
+
+```bash
+# Check health
+curl https://cdpflare-query-api.YOUR-SUBDOMAIN.workers.dev/health
+
+# Query events (after pipeline has processed data - may take a minute)
+curl -X POST https://cdpflare-query-api.YOUR-SUBDOMAIN.workers.dev/query \
+  -H "Content-Type: application/json" \
+  -d '{"sql": "SELECT * FROM analytics.events LIMIT 10"}'
+```
 
 ## SDK Integration
 
