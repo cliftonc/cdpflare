@@ -217,7 +217,70 @@ curl -X POST https://YOUR-WORKER.workers.dev/v1/track \
   -d '{"userId":"test","event":"Test"}'
 ```
 
-## Query Data
+## Query API
+
+The Query API worker provides HTTP access to your analytics data via R2 SQL.
+
+### Deploy Query API
+
+```bash
+# Set required secrets
+npx wrangler secret put CF_ACCOUNT_ID --config workers/query-api/wrangler.jsonc
+npx wrangler secret put CF_API_TOKEN --config workers/query-api/wrangler.jsonc
+
+# Deploy
+pnpm deploy:query
+```
+
+### Query Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/query` | POST | Execute SQL query |
+| `/tables/:namespace` | GET | List tables in namespace |
+| `/tables/:namespace/:table` | GET | Describe table schema |
+| `/health` | GET | Health check |
+
+### Example Queries
+
+```bash
+# Basic query - get recent events
+curl -X POST https://cdpflare-query-api.YOUR-SUBDOMAIN.workers.dev/query \
+  -H "Content-Type: application/json" \
+  -d '{"sql": "SELECT * FROM analytics.events LIMIT 10"}'
+
+# Filter by event type
+curl -X POST https://cdpflare-query-api.YOUR-SUBDOMAIN.workers.dev/query \
+  -H "Content-Type: application/json" \
+  -d '{"sql": "SELECT * FROM analytics.events WHERE type = '\''track'\'' LIMIT 10"}'
+
+# Filter by user
+curl -X POST https://cdpflare-query-api.YOUR-SUBDOMAIN.workers.dev/query \
+  -H "Content-Type: application/json" \
+  -d '{"sql": "SELECT * FROM analytics.events WHERE user_id = '\''user-123'\'' LIMIT 10"}'
+
+# Get CSV output
+curl -X POST https://cdpflare-query-api.YOUR-SUBDOMAIN.workers.dev/query \
+  -H "Content-Type: application/json" \
+  -d '{"sql": "SELECT * FROM analytics.events LIMIT 10", "format": "csv"}'
+
+# List tables
+curl https://cdpflare-query-api.YOUR-SUBDOMAIN.workers.dev/tables/analytics
+
+# Describe table schema
+curl https://cdpflare-query-api.YOUR-SUBDOMAIN.workers.dev/tables/analytics/events
+```
+
+### Query with Authentication
+
+If `API_TOKEN` is configured:
+
+```bash
+curl -X POST https://cdpflare-query-api.YOUR-SUBDOMAIN.workers.dev/query \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -d '{"sql": "SELECT * FROM analytics.events LIMIT 10"}'
+```
 
 ### Via Wrangler CLI
 
