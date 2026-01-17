@@ -159,7 +159,13 @@ function checkExistingResources(): ExistingResources {
   return resources;
 }
 
-function checkWranglerAuth(): boolean {
+interface AuthInfo {
+  authenticated: boolean;
+  email?: string;
+  accountId?: string;
+}
+
+function checkWranglerAuth(): AuthInfo {
   log('\n> Checking Cloudflare authentication...', 'cyan');
   try {
     const output = execSync('npx wrangler whoami', {
@@ -168,18 +174,41 @@ function checkWranglerAuth(): boolean {
     });
 
     if (output.includes('You are not authenticated')) {
-      return false;
+      return { authenticated: false };
     }
+
+    const result: AuthInfo = { authenticated: true };
 
     const emailMatch = output.match(/associated with the email ([^\s]+)/);
     if (emailMatch) {
+      result.email = emailMatch[1];
       log(`  ✓ Logged in as: ${emailMatch[1]}`, 'green');
     } else {
       log(`  ✓ Authenticated with Cloudflare`, 'green');
     }
-    return true;
+
+    // Try to extract account ID
+    const accountMatch = output.match(/Account ID[:\s]+([a-f0-9]{32})/i);
+    if (accountMatch) {
+      result.accountId = accountMatch[1];
+    } else {
+      // Try alternative: get from wrangler config or API
+      const accountsOutput = runQuiet('npx wrangler whoami --account');
+      if (accountsOutput) {
+        const idMatch = accountsOutput.match(/([a-f0-9]{32})/i);
+        if (idMatch) {
+          result.accountId = idMatch[1];
+        }
+      }
+    }
+
+    if (result.accountId) {
+      log(`  ✓ Account ID: ${result.accountId}`, 'green');
+    }
+
+    return result;
   } catch {
-    return false;
+    return { authenticated: false };
   }
 }
 
@@ -189,7 +218,8 @@ async function main() {
   log('╚════════════════════════════════════════════════════════════╝', 'cyan');
 
   // Check authentication first
-  if (!checkWranglerAuth()) {
+  const authInfo = checkWranglerAuth();
+  if (!authInfo.authenticated) {
     log('\n  ✗ Not logged in to Cloudflare', 'red');
     log('\n  Please run the following command to authenticate:', 'yellow');
     log('    npx wrangler login', 'cyan');
@@ -382,6 +412,34 @@ async function main() {
   log(`     curl -X POST https://cdpflare-event-ingest.YOUR-SUBDOMAIN.workers.dev/v1/track \\`);
   log(`       -H "Content-Type: application/json" \\`);
   log(`       -d '{"userId":"test","event":"Test Event"}'`);
+
+  // Query API configuration
+  log('\n┌────────────────────────────────────────────────────────────┐', 'cyan');
+  log('│              Query API Configuration (Optional)            │', 'cyan');
+  log('└────────────────────────────────────────────────────────────┘', 'cyan');
+
+  const accountId = authInfo.accountId || 'YOUR_ACCOUNT_ID';
+  const warehouseName = `${accountId}_${config.bucketName.replace(/-/g, '_')}`;
+
+  log('\n  To query your data via HTTP, configure the Query API worker:\n');
+
+  if (authInfo.accountId) {
+    log(`  Account ID:     ${authInfo.accountId}`, 'green');
+    log(`  Warehouse Name: ${warehouseName}`, 'green');
+  } else {
+    log('  Account ID: Find in Cloudflare dashboard URL or Overview page', 'yellow');
+    log('  Warehouse Name: {ACCOUNT_ID}_{BUCKET_NAME} (underscores, not hyphens)', 'yellow');
+  }
+
+  log('\n  1. Edit workers/query-api/wrangler.jsonc:');
+  log(`     "vars": { "WAREHOUSE_NAME": "${warehouseName}" }`, 'yellow');
+
+  log('\n  2. Set secrets:');
+  log('     npx wrangler secret put CF_ACCOUNT_ID --config workers/query-api/wrangler.jsonc');
+  log('     npx wrangler secret put CF_API_TOKEN --config workers/query-api/wrangler.jsonc');
+
+  log('\n  3. Deploy: pnpm deploy:query');
+
   log('\n  See README.md for full documentation.\n');
 }
 
