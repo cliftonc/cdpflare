@@ -70,7 +70,7 @@ pnpm deploy:query
 pnpm deploy:all
 
 # Infrastructure
-pnpm setup      # Create R2 bucket, pipeline, etc.
+pnpm launch     # Create R2 bucket, pipeline, etc.
 pnpm teardown   # Delete infrastructure
 ```
 
@@ -250,7 +250,7 @@ curl -X POST http://localhost:8788/query \
 ### Pipelines (Beta)
 
 - Pipelines are in open beta - API may change
-- Pipeline binding requires pipeline to be created first via `pnpm setup`
+- Pipeline binding requires pipeline to be created first via `pnpm launch`
 - Immutable: streams, sinks, and pipelines cannot be modified, only deleted/recreated
 
 ### R2 SQL (Beta)

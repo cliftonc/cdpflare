@@ -10,7 +10,7 @@
     "deploy:ingest": "pnpm --filter event-ingest deploy",
     "deploy:query": "pnpm --filter query-api deploy",
     "deploy:all": "pnpm -r deploy",
-    "setup": "tsx scripts/setup-pipeline.ts",
+    "launch": "tsx scripts/setup-pipeline.ts",
     "teardown": "tsx scripts/teardown.ts",
     "typecheck": "pnpm -r typecheck",
     "clean": "pnpm -r clean"

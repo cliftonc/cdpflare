@@ -62,7 +62,7 @@ This opens a browser window to authorize wrangler. Once complete, you'll see a s
 Run the setup script to create R2 bucket, Data Catalog, Stream, Sink, and Pipeline:
 
 ```bash
-pnpm setup
+pnpm launch
 ```
 
 The script will:

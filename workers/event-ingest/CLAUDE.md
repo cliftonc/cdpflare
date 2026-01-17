@@ -47,7 +47,7 @@ The worker is a thin wrapper around `@cdpflare/ingest`.
     "AUTH_ENABLED": "false"
   },
 
-  // Configure after running pnpm setup with your stream ID
+  // Configure after running pnpm launch with your stream ID
   "pipelines": [
     {
       "pipeline": "cdpflare-events-pipeline",
@@ -96,7 +96,7 @@ pnpm deploy
 
 1. **Create pipeline infrastructure**:
    ```bash
-   pnpm setup  # From root
+   pnpm launch  # From root
    ```
 
 2. **Uncomment pipeline binding** in `wrangler.jsonc`
@@ -144,4 +144,4 @@ Configure SDK to point to this worker's URL as the data plane.
 - Worker URL pattern: `https://cdpflare-event-ingest.<subdomain>.workers.dev`
 - Events are validated before sending to pipeline
 - Invalid events return 400 with error details
-- Pipeline must exist before deploying (run `pnpm setup` first)
+- Pipeline must exist before deploying (run `pnpm launch` first)

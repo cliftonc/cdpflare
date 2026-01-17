@@ -49,7 +49,7 @@
     "ALLOWED_ORIGINS": "*"
   },
 
-  // Uncomment after running pnpm setup
+  // Uncomment after running pnpm launch
   "pipelines": [
     {
       "pipeline": "cdpflare-events-pipeline",

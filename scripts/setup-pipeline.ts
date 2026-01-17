@@ -3,7 +3,7 @@
  * Setup script for cdpflare infrastructure
  * Creates R2 bucket, Data Catalog, Stream, Sink, and Pipeline
  *
- * Usage: pnpm setup
+ * Usage: pnpm launch
  *
  * Environment variables (optional, defaults provided):
  * - BUCKET_NAME: R2 bucket name (default: cdpflare-data)

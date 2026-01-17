@@ -51,7 +51,7 @@ TABLE_NAME=events
 Run the setup script to create all Cloudflare resources:
 
 ```bash
-pnpm setup
+pnpm launch
 ```
 
 This creates:
