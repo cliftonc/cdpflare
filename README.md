@@ -22,6 +22,8 @@ icelight provides a complete solution for collecting analytics events and storin
                         └─────────────────┘     └─────────────────┘
 ```
 
+**Live Demo**: https://try.icelight.dev
+
 ## Prerequisites
 
 - **Cloudflare Account**: [dash.cloudflare.com/sign-up](https://dash.cloudflare.com/sign-up) (free tier works)
@@ -72,8 +74,6 @@ The Web UI includes:
 - **R2 SQL**: Direct SQL queries against your Iceberg tables
 - **DuckDB**: Full SQL support (JOINs, aggregations, window functions)
 - **Event Simulator**: Send test events using the RudderStack SDK
-
-**Live Demo**: https://try.icelight.dev
 
 ## SDK Integration
 
