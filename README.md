@@ -73,7 +73,7 @@ The Web UI includes:
 - **DuckDB**: Full SQL support (JOINs, aggregations, window functions)
 - **Event Simulator**: Send test events using the RudderStack SDK
 
-**Live Demo**: https://icelight-query-api.clifton-cunningham.workers.dev/
+**Live Demo**: https://try.icelight.dev
 
 ## SDK Integration
 
