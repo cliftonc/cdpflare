@@ -1,6 +1,6 @@
 import { Hono, Context } from 'hono';
 import { cors } from 'hono/cors';
-import type { FlattenedEvent } from '@cdpflare/core';
+import type { FlattenedEvent } from '@icelight/core';
 import { authMiddleware } from './auth.js';
 import { processBatch, processSingleEvent } from './batch.js';
 

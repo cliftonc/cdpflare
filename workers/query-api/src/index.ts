@@ -1,4 +1,4 @@
-import { createQueryApp, createEventsCube } from '@cdpflare/query';
+import { createQueryApp, createEventsCube } from '@icelight/query';
 import { cubeConfig } from './cube-config.js';
 
 // Create cube with custom configuration

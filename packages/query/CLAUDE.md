@@ -1,6 +1,6 @@
-# @cdpflare/query
+# @icelight/query
 
-Hono-based R2 SQL query API library for cdpflare.
+Hono-based R2 SQL query API library for icelight.
 
 ## Purpose
 
@@ -24,13 +24,13 @@ This package provides:
 ### Factory Pattern
 
 ```typescript
-import { createQueryApp } from '@cdpflare/query';
+import { createQueryApp } from '@icelight/query';
 
 // Create configured app
 const app = createQueryApp();
 
 // Or use default export directly
-export { default } from '@cdpflare/query';
+export { default } from '@icelight/query';
 ```
 
 ### Routes
@@ -59,7 +59,7 @@ interface QueryEnv {
 ### executeQuery
 
 ```typescript
-import { executeQuery, type R2SqlConfig } from '@cdpflare/query';
+import { executeQuery, type R2SqlConfig } from '@icelight/query';
 
 const config: R2SqlConfig = {
   accountId: '...',
@@ -149,7 +149,7 @@ pnpm clean      # Remove dist/
 
 ## Dependencies
 
-- `@cdpflare/core` - Configuration types
+- `@icelight/core` - Configuration types
 - `hono` - Web framework
 
 ## R2 SQL API

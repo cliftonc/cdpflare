@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**cdpflare** is a Cloudflare Data Platform library that streams JSON analytics events to Apache Iceberg tables. It provides RudderStack/Segment-compatible HTTP endpoints for event ingestion and a query API for SQL access via R2 SQL.
+**icelight** is a Cloudflare Data Platform library that streams JSON analytics events to Apache Iceberg tables. It provides RudderStack/Segment-compatible HTTP endpoints for event ingestion and a query API for SQL access via R2 SQL.
 
 ### Architecture
 
@@ -17,26 +17,26 @@ Client/SDK → Event Ingest Worker → Cloudflare Pipeline → R2 + Iceberg → 
 ## Repository Structure
 
 ```
-cdpflare/
+icelight/
 ├── packages/                    # Shared libraries (npm publishable)
-│   ├── core/                    # @cdpflare/core - Types & validation
+│   ├── core/                    # @icelight/core - Types & validation
 │   │   └── src/
 │   │       ├── event-schema.ts  # RudderStack/Segment event types
 │   │       ├── validation.ts    # Event validation & flattening
 │   │       └── config.ts        # Configuration types
-│   ├── ingest/                  # @cdpflare/ingest - Ingestion library
+│   ├── ingest/                  # @icelight/ingest - Ingestion library
 │   │   └── src/
 │   │       ├── auth.ts          # Hono auth middleware
 │   │       ├── batch.ts         # Batch processing logic
 │   │       └── handler.ts       # Hono app factory
-│   └── query/                   # @cdpflare/query - Query library
+│   └── query/                   # @icelight/query - Query library
 │       └── src/
 │           ├── sql-proxy.ts     # R2 SQL API client
 │           ├── formatter.ts     # JSON/CSV output formatting
 │           └── handler.ts       # Hono app factory
 ├── workers/                     # Deployable Cloudflare Workers
-│   ├── event-ingest/            # Uses @cdpflare/ingest
-│   └── query-api/               # Uses @cdpflare/query
+│   ├── event-ingest/            # Uses @icelight/ingest
+│   └── query-api/               # Uses @icelight/query
 ├── scripts/                     # Infrastructure management
 │   ├── setup-pipeline.ts        # Create R2/Pipeline resources
 │   └── teardown.ts              # Delete resources

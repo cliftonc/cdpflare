@@ -2,7 +2,7 @@
  * HttpDuckDBConnection - HTTP adapter for drizzle-duckdb
  *
  * Translates drizzle-duckdb connection calls to HTTP requests
- * against the cdpflare DuckDB API worker.
+ * against the icelight DuckDB API worker.
  */
 
 import type {
@@ -27,10 +27,10 @@ const DEFAULT_TIMEOUT = 30000;
  * @example
  * ```typescript
  * import { drizzle } from 'drizzle-duckdb';
- * import { HttpDuckDBConnection } from '@cdpflare/duckdb-http-adapter';
+ * import { HttpDuckDBConnection } from '@icelight/duckdb-http-adapter';
  *
  * const connection = new HttpDuckDBConnection({
- *   endpoint: 'https://cdpflare-duckdb-api.example.workers.dev',
+ *   endpoint: 'https://icelight-duckdb-api.example.workers.dev',
  *   token: process.env.API_TOKEN,
  * });
  *

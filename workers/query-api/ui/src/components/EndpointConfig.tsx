@@ -13,8 +13,8 @@ function deriveIngestUrl(): string {
   return `${protocol}//${hostname}${port ? ':' + port : ''}`;
 }
 
-const STORAGE_KEY_ENDPOINT = 'cdpflare_ingest_endpoint';
-const STORAGE_KEY_WRITE_KEY = 'cdpflare_write_key';
+const STORAGE_KEY_ENDPOINT = 'icelight_ingest_endpoint';
+const STORAGE_KEY_WRITE_KEY = 'icelight_write_key';
 
 export default function EndpointConfig({ onSdkReady }: EndpointConfigProps) {
   const [endpoint, setEndpoint] = useState(() => {
@@ -138,7 +138,7 @@ export default function EndpointConfig({ onSdkReady }: EndpointConfigProps) {
           </label>
           <input
             type="url"
-            placeholder="https://cdpflare-event-ingest.example.workers.dev"
+            placeholder="https://icelight-event-ingest.example.workers.dev"
             className="input input-bordered w-full font-mono text-sm"
             value={endpoint}
             onChange={(e) => setEndpoint(e.target.value)}

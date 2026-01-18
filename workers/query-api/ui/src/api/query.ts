@@ -12,7 +12,7 @@ interface QueryRequest {
 }
 
 async function executeQuery(request: QueryRequest): Promise<QueryResult> {
-  const token = localStorage.getItem('cdpflare_api_token');
+  const token = localStorage.getItem('icelight_api_token');
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -83,7 +83,7 @@ interface SchemaResponse {
 }
 
 function getAuthHeaders(): Record<string, string> {
-  const token = localStorage.getItem('cdpflare_api_token');
+  const token = localStorage.getItem('icelight_api_token');
   const headers: Record<string, string> = {};
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;

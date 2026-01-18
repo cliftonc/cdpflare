@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "cdpflare-duckdb-api",
+  "name": "icelight-duckdb-api",
   "main": "src/index.ts",
   "compatibility_date": "2025-01-01",
   "compatibility_flags": ["nodejs_compat"],
@@ -42,6 +42,6 @@
   //
   // Vars:
   // - R2_ENDPOINT: R2 catalog URI
-  // - R2_CATALOG: Warehouse name (e.g., cdpflare-data)
+  // - R2_CATALOG: Warehouse name (e.g., icelight-data)
   "vars": {}
 }

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "description": "Analytics event schema for cdpflare (RudderStack/Segment compatible)",
+  "description": "Analytics event schema for icelight (RudderStack/Segment compatible)",
   "fields": [
     {
       "name": "message_id",

@@ -1,5 +1,5 @@
 /**
- * Configuration types for cdpflare
+ * Configuration types for icelight
  */
 
 export interface IngestConfig {

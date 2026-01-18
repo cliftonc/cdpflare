@@ -1,7 +1,7 @@
 /**
- * @cdpflare/duckdb-http-adapter
+ * @icelight/duckdb-http-adapter
  *
- * HTTP adapter for drizzle-duckdb to query cdpflare DuckDB API.
+ * HTTP adapter for drizzle-duckdb to query icelight DuckDB API.
  *
  * This package provides an HTTP-based implementation of the DuckDB connection
  * interface expected by drizzle-duckdb, allowing you to use drizzle with
@@ -10,11 +10,11 @@
  * @example
  * ```typescript
  * import { drizzle } from 'drizzle-duckdb';
- * import { HttpDuckDBConnection } from '@cdpflare/duckdb-http-adapter';
+ * import { HttpDuckDBConnection } from '@icelight/duckdb-http-adapter';
  *
  * // Create connection to your DuckDB API worker
  * const connection = new HttpDuckDBConnection({
- *   endpoint: 'https://cdpflare-duckdb-api.example.workers.dev',
+ *   endpoint: 'https://icelight-duckdb-api.example.workers.dev',
  *   token: process.env.API_TOKEN, // optional
  * });
  *

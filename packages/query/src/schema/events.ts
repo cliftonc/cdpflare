@@ -1,7 +1,7 @@
 /**
  * Drizzle schema for analytics events stored in R2 Data Catalog
  *
- * This schema matches the FlattenedEvent structure from @cdpflare/core
+ * This schema matches the FlattenedEvent structure from @icelight/core
  * as stored in the Iceberg table via Cloudflare Pipelines.
  */
 

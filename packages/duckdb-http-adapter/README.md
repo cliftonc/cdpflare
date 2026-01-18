@@ -1,6 +1,6 @@
-# @cdpflare/duckdb-http-adapter
+# @icelight/duckdb-http-adapter
 
-HTTP adapter for drizzle-duckdb to query the cdpflare DuckDB API worker.
+HTTP adapter for drizzle-duckdb to query the icelight DuckDB API worker.
 
 ## Overview
 
@@ -35,11 +35,11 @@ packages/duckdb-http-adapter/
 
 ```typescript
 import { drizzle } from 'drizzle-duckdb';
-import { HttpDuckDBConnection } from '@cdpflare/duckdb-http-adapter';
+import { HttpDuckDBConnection } from '@icelight/duckdb-http-adapter';
 
 // Create connection to your DuckDB API worker
 const connection = new HttpDuckDBConnection({
-  endpoint: 'https://cdpflare-duckdb-api.example.workers.dev',
+  endpoint: 'https://icelight-duckdb-api.example.workers.dev',
   token: process.env.API_TOKEN, // optional
 });
 
@@ -66,10 +66,10 @@ const events = await db.execute(sql`
 You can also use the connection directly without drizzle:
 
 ```typescript
-import { HttpDuckDBConnection } from '@cdpflare/duckdb-http-adapter';
+import { HttpDuckDBConnection } from '@icelight/duckdb-http-adapter';
 
 const connection = new HttpDuckDBConnection({
-  endpoint: 'https://cdpflare-duckdb-api.example.workers.dev',
+  endpoint: 'https://icelight-duckdb-api.example.workers.dev',
   timeout: 60000, // 60 seconds for cold starts
 });
 

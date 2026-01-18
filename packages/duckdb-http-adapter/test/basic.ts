@@ -1,7 +1,7 @@
 /**
  * Basic test script for the HTTP DuckDB adapter
  *
- * This script tests the adapter against the deployed cdpflare DuckDB API worker.
+ * This script tests the adapter against the deployed icelight DuckDB API worker.
  *
  * Usage:
  *   pnpm tsx test/basic.ts
@@ -12,7 +12,7 @@
 
 import { HttpDuckDBConnection } from '../src/index.js';
 
-const ENDPOINT = 'https://cdpflare-duckdb-api.clifton-cunningham.workers.dev';
+const ENDPOINT = 'https://icelight-duckdb-api.clifton-cunningham.workers.dev';
 const API_TOKEN = process.env.API_TOKEN;
 
 async function main() {

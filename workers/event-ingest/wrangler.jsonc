@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "cdpflare-event-ingest",
+  "name": "icelight-event-ingest",
   "main": "src/index.ts",
   // IMPORTANT: 2025-01-01 or later required for Pipelines send() method
   "compatibility_date": "2025-01-01",

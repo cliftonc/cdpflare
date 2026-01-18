@@ -1,6 +1,6 @@
-# @cdpflare/core
+# @icelight/core
 
-Shared types and validation utilities for cdpflare.
+Shared types and validation utilities for icelight.
 
 ## Purpose
 
@@ -90,7 +90,7 @@ import {
   validateEvent,
   flattenEvent,
   generateMessageId,
-} from '@cdpflare/core';
+} from '@icelight/core';
 
 // Validate incoming event
 const result = validateEvent(data);

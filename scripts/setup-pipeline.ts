@@ -1,15 +1,15 @@
 #!/usr/bin/env tsx
 /**
- * Setup script for cdpflare infrastructure
+ * Setup script for icelight infrastructure
  * Creates R2 bucket, Data Catalog, Stream, Sink, and Pipeline
  *
  * Usage: pnpm launch
  *
  * Environment variables (optional, defaults provided):
- * - BUCKET_NAME: R2 bucket name (default: cdpflare-data)
- * - STREAM_NAME: Stream name (default: cdpflare_events_stream)
- * - SINK_NAME: Sink name (default: cdpflare_events_sink)
- * - PIPELINE_NAME: Pipeline name (default: cdpflare_events_pipeline)
+ * - BUCKET_NAME: R2 bucket name (default: icelight-data)
+ * - STREAM_NAME: Stream name (default: icelight_events_stream)
+ * - SINK_NAME: Sink name (default: icelight_events_sink)
+ * - PIPELINE_NAME: Pipeline name (default: icelight_events_pipeline)
  */
 
 import { execSync, spawnSync } from 'child_process';
@@ -21,7 +21,7 @@ import { createInterface } from 'readline';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // Default project name - all resource names are derived from this
-const defaultProjectName = process.env.PROJECT_NAME || 'cdpflare';
+const defaultProjectName = process.env.PROJECT_NAME || 'icelight';
 
 // Configuration - populated after prompting user
 interface Config {
@@ -517,7 +517,7 @@ function checkWranglerAuth(): AuthInfo {
 
 async function main() {
   log('\n╔════════════════════════════════════════════════════════════╗', 'cyan');
-  log('║           cdpflare Infrastructure Setup                     ║', 'cyan');
+  log('║           icelight Infrastructure Setup                     ║', 'cyan');
   log('╚════════════════════════════════════════════════════════════╝', 'cyan');
 
   // Prompt for project name first (use saved value from .env if available)

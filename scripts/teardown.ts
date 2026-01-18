@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 /**
- * Teardown script for cdpflare infrastructure
+ * Teardown script for icelight infrastructure
  * Deletes all resources created by setup-pipeline.ts
  *
  * Usage: pnpm teardown
@@ -72,7 +72,7 @@ const confirmed = args.includes('--confirm');
 
 // Load saved environment variables
 const savedEnv = loadEnvFile();
-const projectName = savedEnv.CDPFLARE_PROJECT_NAME || 'cdpflare';
+const projectName = savedEnv.CDPFLARE_PROJECT_NAME || 'icelight';
 
 // Derive all names from project name (matching setup-pipeline.ts)
 const underscoreName = projectName.replace(/-/g, '_');
@@ -92,14 +92,14 @@ const workerLocalConfigs = [
 
 // Worker names (derived from wrangler.jsonc files)
 const workerNames = [
-  'cdpflare-event-ingest',
-  'cdpflare-duckdb-api',
-  'cdpflare-query-api',
+  'icelight-event-ingest',
+  'icelight-duckdb-api',
+  'icelight-query-api',
 ];
 
 // Container names (derived from worker name + container binding name)
 const containerNames = [
-  'cdpflare-duckdb-api-duckdbcontainer',
+  'icelight-duckdb-api-duckdbcontainer',
 ];
 
 function runQuiet(command: string): string | null {
@@ -240,37 +240,71 @@ async function confirm(message: string): Promise<boolean> {
 }
 
 /**
- * List all objects in an R2 bucket
+ * Get account ID from wrangler whoami
  */
-function listBucketObjects(bucketName: string): string[] {
-  const output = runQuiet(`npx wrangler r2 object list ${bucketName}`);
-  if (!output) return [];
+function getAccountId(): string | null {
+  const output = runQuiet('npx wrangler whoami');
+  if (!output) return null;
 
+  // Try to extract account ID from the output
+  const match = output.match(/Account ID[:\s]+([a-f0-9]{32})/i);
+  return match ? match[1] : null;
+}
+
+/**
+ * List all objects in an R2 bucket using Cloudflare API
+ */
+async function listBucketObjects(bucketName: string, apiToken: string, accountId: string): Promise<string[]> {
   const objects: string[] = [];
-  // Parse the output - each line after header contains object keys
-  const lines = output.split('\n');
-  for (const line of lines) {
-    const trimmed = line.trim();
-    // Skip empty lines and header lines
-    if (!trimmed || trimmed.startsWith('key') || trimmed.startsWith('─') || trimmed.startsWith('size')) {
-      continue;
+  let cursor: string | undefined;
+
+  do {
+    const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/r2/buckets/${bucketName}/objects${cursor ? `?cursor=${cursor}` : ''}`;
+
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${apiToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        log(`  ⚠ Failed to list objects: ${error}`, 'yellow');
+        break;
+      }
+
+      const data = await response.json() as {
+        success: boolean;
+        result: { objects: Array<{ key: string }>, cursor?: string, truncated?: boolean };
+      };
+
+      if (!data.success || !data.result) {
+        break;
+      }
+
+      for (const obj of data.result.objects || []) {
+        objects.push(obj.key);
+      }
+
+      cursor = data.result.truncated ? data.result.cursor : undefined;
+    } catch (error) {
+      log(`  ⚠ Error listing objects: ${error}`, 'yellow');
+      break;
     }
-    // First column is the key
-    const parts = trimmed.split(/\s+/);
-    if (parts[0] && !parts[0].includes('─')) {
-      objects.push(parts[0]);
-    }
-  }
+  } while (cursor);
+
   return objects;
 }
 
 /**
- * Delete all objects from an R2 bucket
+ * Delete all objects from an R2 bucket using Cloudflare API
  */
-function emptyBucket(bucketName: string): boolean {
+async function emptyBucket(bucketName: string, apiToken: string, accountId: string): Promise<boolean> {
   log(`\n> Emptying R2 bucket: ${bucketName}`, 'cyan');
 
-  const objects = listBucketObjects(bucketName);
+  const objects = await listBucketObjects(bucketName, apiToken, accountId);
   if (objects.length === 0) {
     log(`  ✓ Bucket is already empty`, 'green');
     return true;
@@ -281,13 +315,21 @@ function emptyBucket(bucketName: string): boolean {
   let deletedCount = 0;
   let failedCount = 0;
 
+  // Delete objects in batches using wrangler (which handles individual deletes)
   for (const key of objects) {
+    // Use wrangler to delete individual objects
     const deleteOutput = runQuiet(`npx wrangler r2 object delete "${bucketName}/${key}"`);
-    if (deleteOutput !== null) {
+    if (deleteOutput !== null || deleteOutput === '') {
       deletedCount++;
+      // Show progress every 10 objects
+      if (deletedCount % 10 === 0) {
+        log(`  Deleted ${deletedCount}/${objects.length} objects...`, 'dim');
+      }
     } else {
       failedCount++;
-      log(`  ⚠ Failed to delete: ${key}`, 'yellow');
+      if (failedCount <= 5) {
+        log(`  ⚠ Failed to delete: ${key}`, 'yellow');
+      }
     }
   }
 
@@ -296,7 +338,7 @@ function emptyBucket(bucketName: string): boolean {
     return true;
   } else {
     log(`  ⚠ Deleted ${deletedCount} objects, failed to delete ${failedCount}`, 'yellow');
-    return false;
+    return failedCount < objects.length / 2; // Consider partial success if less than half failed
   }
 }
 
@@ -322,7 +364,7 @@ function deleteLocalConfigs(): void {
 
 async function main() {
   log('\n╔════════════════════════════════════════════════════════════╗', 'red');
-  log('║           cdpflare Infrastructure Teardown                  ║', 'red');
+  log('║           icelight Infrastructure Teardown                  ║', 'red');
   log('╚════════════════════════════════════════════════════════════╝', 'red');
 
   log(`\n  Project name: ${projectName} (from .env)`, 'cyan');
@@ -437,8 +479,19 @@ async function main() {
     log('│                  Deleting R2 Bucket                        │', 'cyan');
     log('└────────────────────────────────────────────────────────────┘', 'cyan');
 
-    // First, empty the bucket (must delete all objects before deleting bucket)
-    emptyBucket(config.bucketName);
+    // Get API token and account ID for bucket operations
+    const apiToken = savedEnv.ICELIGHT_API_TOKEN || savedEnv.CDPFLARE_API_TOKEN;
+    const accountId = getAccountId();
+
+    if (!apiToken || !accountId) {
+      log(`  ⚠ Cannot empty bucket: missing API token or account ID`, 'yellow');
+      log(`    API Token: ${apiToken ? 'found' : 'missing (set ICELIGHT_API_TOKEN in .env)'}`, 'yellow');
+      log(`    Account ID: ${accountId ? 'found' : 'missing (run wrangler login)'}`, 'yellow');
+      log(`    Attempting to delete bucket anyway...`, 'yellow');
+    } else {
+      // First, empty the bucket (must delete all objects before deleting bucket)
+      await emptyBucket(config.bucketName, apiToken, accountId);
+    }
 
     // Then delete the bucket
     run(

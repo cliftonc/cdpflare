@@ -151,7 +151,7 @@ app.get('/_health', (c) => {
 // Welcome endpoint
 app.get('/', (c) => {
   return c.json({
-    name: 'cdpflare-duckdb-api',
+    name: 'icelight-duckdb-api',
     version: '0.1.0',
     duckdb: duckdbReady ? 'ready' : (initError || 'initializing'),
   });

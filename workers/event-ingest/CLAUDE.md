@@ -16,7 +16,7 @@ SDK/Client → event-ingest Worker → Cloudflare Pipeline → R2 Iceberg
 
 | File | Description |
 |------|-------------|
-| `src/index.ts` | Worker entry point (imports @cdpflare/ingest) |
+| `src/index.ts` | Worker entry point (imports @icelight/ingest) |
 | `wrangler.jsonc` | Wrangler configuration |
 | `package.json` | Dependencies |
 | `tsconfig.json` | TypeScript config |
@@ -25,11 +25,11 @@ SDK/Client → event-ingest Worker → Cloudflare Pipeline → R2 Iceberg
 
 ```typescript
 // src/index.ts
-import { createIngestApp } from '@cdpflare/ingest';
+import { createIngestApp } from '@icelight/ingest';
 export default createIngestApp();
 ```
 
-The worker is a thin wrapper around `@cdpflare/ingest`.
+The worker is a thin wrapper around `@icelight/ingest`.
 
 ## Configuration
 
@@ -37,7 +37,7 @@ The worker is a thin wrapper around `@cdpflare/ingest`.
 
 ```jsonc
 {
-  "name": "cdpflare-event-ingest",
+  "name": "icelight-event-ingest",
   "main": "src/index.ts",
   // IMPORTANT: 2025-01-01 or later required for Pipelines send() method
   "compatibility_date": "2025-01-01",
@@ -50,7 +50,7 @@ The worker is a thin wrapper around `@cdpflare/ingest`.
   // Configure after running pnpm launch with your stream ID
   "pipelines": [
     {
-      "pipeline": "cdpflare-events-pipeline",
+      "pipeline": "icelight-events-pipeline",
       "binding": "PIPELINE"
     }
   ]
@@ -141,7 +141,7 @@ Configure SDK to point to this worker's URL as the data plane.
 
 ## Notes
 
-- Worker URL pattern: `https://cdpflare-event-ingest.<subdomain>.workers.dev`
+- Worker URL pattern: `https://icelight-event-ingest.<subdomain>.workers.dev`
 - Events are validated before sending to pipeline
 - Invalid events return 400 with error details
 - Pipeline must exist before deploying (run `pnpm launch` first)

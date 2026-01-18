@@ -16,7 +16,7 @@ Client → query-api Worker → Cloudflare R2 SQL API → R2 Iceberg Tables
 
 | File | Description |
 |------|-------------|
-| `src/index.ts` | Worker entry point (imports @cdpflare/query) |
+| `src/index.ts` | Worker entry point (imports @icelight/query) |
 | `wrangler.jsonc` | Wrangler configuration |
 | `package.json` | Dependencies |
 | `tsconfig.json` | TypeScript config |
@@ -25,11 +25,11 @@ Client → query-api Worker → Cloudflare R2 SQL API → R2 Iceberg Tables
 
 ```typescript
 // src/index.ts
-import { createQueryApp } from '@cdpflare/query';
+import { createQueryApp } from '@icelight/query';
 export default createQueryApp();
 ```
 
-The worker is a thin wrapper around `@cdpflare/query`.
+The worker is a thin wrapper around `@icelight/query`.
 
 ## Configuration
 
@@ -37,7 +37,7 @@ The worker is a thin wrapper around `@cdpflare/query`.
 
 ```jsonc
 {
-  "name": "cdpflare-query-api",
+  "name": "icelight-query-api",
   "main": "src/index.ts",
   "compatibility_date": "2024-01-01",
   "compatibility_flags": ["nodejs_compat"],
@@ -115,7 +115,7 @@ pnpm deploy
 ### Execute Query
 
 ```bash
-curl -X POST https://cdpflare-query-api.<subdomain>.workers.dev/query \
+curl -X POST https://icelight-query-api.<subdomain>.workers.dev/query \
   -H "Content-Type: application/json" \
   -d '{"sql": "SELECT * FROM analytics.events LIMIT 10"}'
 ```
@@ -123,7 +123,7 @@ curl -X POST https://cdpflare-query-api.<subdomain>.workers.dev/query \
 ### Get CSV Output
 
 ```bash
-curl -X POST https://cdpflare-query-api.<subdomain>.workers.dev/query \
+curl -X POST https://icelight-query-api.<subdomain>.workers.dev/query \
   -H "Content-Type: application/json" \
   -d '{"sql": "SELECT * FROM analytics.events LIMIT 10", "format": "csv"}'
 ```
@@ -131,19 +131,19 @@ curl -X POST https://cdpflare-query-api.<subdomain>.workers.dev/query \
 ### List Tables
 
 ```bash
-curl https://cdpflare-query-api.<subdomain>.workers.dev/tables/analytics
+curl https://icelight-query-api.<subdomain>.workers.dev/tables/analytics
 ```
 
 ### Describe Table
 
 ```bash
-curl https://cdpflare-query-api.<subdomain>.workers.dev/tables/analytics/events
+curl https://icelight-query-api.<subdomain>.workers.dev/tables/analytics/events
 ```
 
 ### With Authentication
 
 ```bash
-curl -X POST https://cdpflare-query-api.<subdomain>.workers.dev/query \
+curl -X POST https://icelight-query-api.<subdomain>.workers.dev/query \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer your-api-token" \
   -d '{"sql": "SELECT * FROM analytics.events LIMIT 10"}'
@@ -160,7 +160,7 @@ For complex queries, use external engines (PyIceberg, DuckDB, Spark).
 
 ## Notes
 
-- Worker URL pattern: `https://cdpflare-query-api.<subdomain>.workers.dev`
+- Worker URL pattern: `https://icelight-query-api.<subdomain>.workers.dev`
 - API Token permissions needed: Account → Workers R2 Storage → Edit
 - Data must exist in R2 (run events through ingest worker first)
 - Query errors return 400 with error message from R2 SQL API

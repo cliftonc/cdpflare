@@ -1,7 +1,7 @@
 {
-  "name": "@cdpflare/duckdb-http-adapter",
+  "name": "@icelight/duckdb-http-adapter",
   "version": "0.1.0",
-  "description": "HTTP adapter for drizzle-duckdb to query cdpflare DuckDB API",
+  "description": "HTTP adapter for drizzle-duckdb to query icelight DuckDB API",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

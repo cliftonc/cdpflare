@@ -32,7 +32,7 @@ export type DuckDBValue =
 export interface HttpConnectionOptions {
   /**
    * Base URL of the DuckDB API endpoint
-   * @example "https://cdpflare-duckdb-api.example.workers.dev"
+   * @example "https://icelight-duckdb-api.example.workers.dev"
    */
   endpoint: string;
 

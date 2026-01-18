@@ -1,6 +1,6 @@
 import { useState, useCallback, type ChangeEvent } from 'react';
 
-const STORAGE_KEY = 'cdpflare_api_token';
+const STORAGE_KEY = 'icelight_api_token';
 
 export default function TokenInput() {
   const [token, setToken] = useState(() => localStorage.getItem(STORAGE_KEY) ?? '');

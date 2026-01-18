@@ -1,7 +1,7 @@
 {
-  "name": "@cdpflare/ingest",
+  "name": "@icelight/ingest",
   "version": "0.1.0",
-  "description": "Ingestion library for cdpflare - handles analytics events",
+  "description": "Ingestion library for icelight - handles analytics events",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -18,7 +18,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@cdpflare/core": "workspace:*",
+    "@icelight/core": "workspace:*",
     "hono": "^4.6.0"
   },
   "devDependencies": {

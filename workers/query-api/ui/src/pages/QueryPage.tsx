@@ -38,7 +38,7 @@ export default function QueryPage() {
   }, [mutation]);
 
   const handleExportCsv = useCallback(async () => {
-    const token = localStorage.getItem('cdpflare_api_token');
+    const token = localStorage.getItem('icelight_api_token');
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };

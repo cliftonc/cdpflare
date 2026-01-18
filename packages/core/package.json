@@ -1,7 +1,7 @@
 {
-  "name": "@cdpflare/core",
+  "name": "@icelight/core",
   "version": "0.1.0",
-  "description": "Core types and utilities for cdpflare",
+  "description": "Core types and utilities for icelight",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

@@ -12,7 +12,7 @@ import { sql } from 'drizzle-orm';
 import { drizzle } from '@leonardovida-md/drizzle-neo-duckdb';
 import { executeQuery, listTables, describeTable, type R2SqlConfig } from './sql-proxy.js';
 import { formatResult, type OutputFormat } from './formatter.js';
-import { HttpDuckDBConnection } from '@cdpflare/duckdb-http-adapter';
+import { HttpDuckDBConnection } from '@icelight/duckdb-http-adapter';
 import { events } from './schema/events.js';
 import { createCubeApp } from 'drizzle-cube/adapters/hono';
 import { allCubes } from './cubes/events.js';

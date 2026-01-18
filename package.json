@@ -1,5 +1,5 @@
 {
-  "name": "cdpflare",
+  "name": "icelight",
   "version": "0.1.0",
   "private": true,
   "description": "Cloudflare Data Platform library for streaming JSON to Iceberg tables",
@@ -10,7 +10,7 @@
     "dev:ui": "pnpm --filter query-api dev:ui",
     "dev:duckdb": "pnpm --filter duckdb-api dev",
     "build:ui": "pnpm --filter query-api build:ui",
-    "build:container": "pnpm --filter cdpflare-duckdb-container build",
+    "build:container": "pnpm --filter icelight-duckdb-container build",
     "deploy:ingest": "pnpm --filter event-ingest run deploy",
     "deploy:query": "pnpm --filter query-api run deploy",
     "deploy:duckdb": "pnpm --filter duckdb-api run deploy",

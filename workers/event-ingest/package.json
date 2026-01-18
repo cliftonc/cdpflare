@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@cdpflare/ingest": "workspace:*",
+    "@icelight/ingest": "workspace:*",
     "hono": "^4.6.0"
   },
   "devDependencies": {

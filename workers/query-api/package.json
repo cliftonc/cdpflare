@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@cdpflare/query": "workspace:*",
+    "@icelight/query": "workspace:*",
     "hono": "^4.6.0"
   },
   "devDependencies": {

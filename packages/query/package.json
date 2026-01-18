@@ -1,7 +1,7 @@
 {
-  "name": "@cdpflare/query",
+  "name": "@icelight/query",
   "version": "0.1.0",
-  "description": "Query library for cdpflare - R2 SQL API proxy",
+  "description": "Query library for icelight - R2 SQL API proxy",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -18,8 +18,8 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@cdpflare/core": "workspace:*",
-    "@cdpflare/duckdb-http-adapter": "workspace:*",
+    "@icelight/core": "workspace:*",
+    "@icelight/duckdb-http-adapter": "workspace:*",
     "@leonardovida-md/drizzle-neo-duckdb": "^1.2.2",
     "drizzle-cube": "^0.3.10",
     "drizzle-orm": "^0.44.0",

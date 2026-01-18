@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "cdpflare-query-api",
+  "name": "icelight-query-api",
   "main": "src/index.ts",
   "compatibility_date": "2024-01-01",
   "compatibility_flags": ["nodejs_compat"],
@@ -30,8 +30,8 @@
   //
   // Option 1 - Service Bindings (RECOMMENDED):
   // "services": [
-  //   { "binding": "DUCKDB_API", "service": "cdpflare-duckdb-api" },
-  //   { "binding": "INGEST_API", "service": "cdpflare-event-ingest" }
+  //   { "binding": "DUCKDB_API", "service": "icelight-duckdb-api" },
+  //   { "binding": "INGEST_API", "service": "icelight-event-ingest" }
   // ]
   //
   // Option 2 - URL-based (may have restrictions on *.workers.dev domains):
@@ -43,12 +43,12 @@
   "services": [
     {
       "binding": "DUCKDB_API",
-      "service": "cdpflare-duckdb-api",
+      "service": "icelight-duckdb-api",
       "remote": true
     },
     {
       "binding": "INGEST_API",
-      "service": "cdpflare-event-ingest",
+      "service": "icelight-event-ingest",
       "remote": true
     }
   ]

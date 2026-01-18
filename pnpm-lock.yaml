@@ -60,7 +60,7 @@ importers:
 
   packages/ingest:
     dependencies:
-      '@cdpflare/core':
+      '@icelight/core':
         specifier: workspace:*
         version: link:../core
       hono:
@@ -76,10 +76,10 @@ importers:
 
   packages/query:
     dependencies:
-      '@cdpflare/core':
+      '@icelight/core':
         specifier: workspace:*
         version: link:../core
-      '@cdpflare/duckdb-http-adapter':
+      '@icelight/duckdb-http-adapter':
         specifier: workspace:*
         version: link:../duckdb-http-adapter
       '@leonardovida-md/drizzle-neo-duckdb':
@@ -123,7 +123,7 @@ importers:
 
   workers/event-ingest:
     dependencies:
-      '@cdpflare/ingest':
+      '@icelight/ingest':
         specifier: workspace:*
         version: link:../../packages/ingest
       hono:
@@ -142,7 +142,7 @@ importers:
 
   workers/query-api:
     dependencies:
-      '@cdpflare/query':
+      '@icelight/query':
         specifier: workspace:*
         version: link:../../packages/query
       hono:

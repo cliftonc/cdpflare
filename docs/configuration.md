@@ -24,10 +24,10 @@
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `BUCKET_NAME` | `cdpflare-data` | R2 bucket name |
-| `PIPELINE_NAME` | `cdpflare-events-pipeline` | Pipeline name |
-| `STREAM_NAME` | `cdpflare-events-stream` | Stream name |
-| `SINK_NAME` | `cdpflare-events-sink` | Sink name |
+| `BUCKET_NAME` | `icelight-data` | R2 bucket name |
+| `PIPELINE_NAME` | `icelight-events-pipeline` | Pipeline name |
+| `STREAM_NAME` | `icelight-events-stream` | Stream name |
+| `SINK_NAME` | `icelight-events-sink` | Sink name |
 | `NAMESPACE` | `analytics` | Iceberg namespace |
 | `TABLE_NAME` | `events` | Iceberg table name |
 | `COMPRESSION` | `zstd` | Parquet compression (zstd, snappy, gzip, none) |
@@ -39,7 +39,7 @@
 
 ```jsonc
 {
-  "name": "cdpflare-event-ingest",
+  "name": "icelight-event-ingest",
   "main": "src/index.ts",
   "compatibility_date": "2024-01-01",
   "compatibility_flags": ["nodejs_compat"],
@@ -52,7 +52,7 @@
   // Uncomment after running pnpm launch
   "pipelines": [
     {
-      "pipeline": "cdpflare-events-pipeline",
+      "pipeline": "icelight-events-pipeline",
       "binding": "PIPELINE"
     }
   ]
@@ -63,7 +63,7 @@
 
 ```jsonc
 {
-  "name": "cdpflare-query-api",
+  "name": "icelight-query-api",
   "main": "src/index.ts",
   "compatibility_date": "2024-01-01",
   "compatibility_flags": ["nodejs_compat"],

@@ -1,6 +1,6 @@
-# @cdpflare/ingest
+# @icelight/ingest
 
-Hono-based event ingestion library for cdpflare.
+Hono-based event ingestion library for icelight.
 
 ## Purpose
 
@@ -25,13 +25,13 @@ This package provides:
 ### Factory Pattern
 
 ```typescript
-import { createIngestApp } from '@cdpflare/ingest';
+import { createIngestApp } from '@icelight/ingest';
 
 // Create configured app
 const app = createIngestApp();
 
 // Or use default export directly
-export { default } from '@cdpflare/ingest';
+export { default } from '@icelight/ingest';
 ```
 
 ### Routes
@@ -69,7 +69,7 @@ The auth middleware (`auth.ts`) supports:
 3. **API Key Header**: `X-API-Key: <token>`
 
 ```typescript
-import { authMiddleware } from '@cdpflare/ingest';
+import { authMiddleware } from '@icelight/ingest';
 
 app.use('*', authMiddleware((c) => ({
   enabled: c.env.AUTH_ENABLED === 'true',
@@ -145,7 +145,7 @@ pnpm clean      # Remove dist/
 
 ## Dependencies
 
-- `@cdpflare/core` - Event types and validation
+- `@icelight/core` - Event types and validation
 - `hono` - Web framework
 
 ## Notes

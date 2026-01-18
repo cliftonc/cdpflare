@@ -6,7 +6,7 @@ import {
   validateBatch,
   flattenEvent,
   generateMessageId,
-} from '@cdpflare/core';
+} from '@icelight/core';
 
 export interface BatchResult {
   success: boolean;

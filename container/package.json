@@ -1,5 +1,5 @@
 {
-  "name": "cdpflare-duckdb-container",
+  "name": "icelight-duckdb-container",
   "version": "0.1.0",
   "private": true,
   "description": "DuckDB API server for Cloudflare Container",

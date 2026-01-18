@@ -1,9 +1,9 @@
-import { type CubeJsonConfig, mergeCubeConfig } from '@cdpflare/query';
+import { type CubeJsonConfig, mergeCubeConfig } from '@icelight/query';
 
 /**
  * Cube JSON field configuration for this deployment
  *
- * Uses defaults from @cdpflare/query plus any custom fields below.
+ * Uses defaults from @icelight/query plus any custom fields below.
  * To replace defaults entirely, export createCubeConfig({...}) instead.
  */
 export const cubeConfig: CubeJsonConfig = mergeCubeConfig({
@@ -24,11 +24,11 @@ export const cubeConfig: CubeJsonConfig = mergeCubeConfig({
 });
 
 // Or to use only defaults:
-// import { DEFAULT_CUBE_CONFIG } from '@cdpflare/query';
+// import { DEFAULT_CUBE_CONFIG } from '@icelight/query';
 // export const cubeConfig = DEFAULT_CUBE_CONFIG;
 
 // Or to completely replace defaults:
-// import { createCubeConfig } from '@cdpflare/query';
+// import { createCubeConfig } from '@icelight/query';
 // export const cubeConfig = createCubeConfig({
 //   properties: [...],
 //   traits: [...],

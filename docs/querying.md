@@ -1,6 +1,6 @@
 # Querying Data
 
-cdpflare stores events in Apache Iceberg tables that can be queried via multiple methods.
+icelight stores events in Apache Iceberg tables that can be queried via multiple methods.
 
 ## Query API Worker
 
@@ -9,7 +9,7 @@ The simplest way to query data is via the included query worker.
 ### Execute SQL Query
 
 ```bash
-curl -X POST https://cdpflare-query-api.your-subdomain.workers.dev/query \
+curl -X POST https://icelight-query-api.your-subdomain.workers.dev/query \
   -H "Content-Type: application/json" \
   -d '{
     "sql": "SELECT * FROM analytics.events WHERE type = '\''track'\'' LIMIT 100",
@@ -53,13 +53,13 @@ curl -X POST https://cdpflare-query-api.your-subdomain.workers.dev/query \
 ### List Tables
 
 ```bash
-curl https://cdpflare-query-api.your-subdomain.workers.dev/tables/analytics
+curl https://icelight-query-api.your-subdomain.workers.dev/tables/analytics
 ```
 
 ### Describe Table
 
 ```bash
-curl https://cdpflare-query-api.your-subdomain.workers.dev/tables/analytics/events
+curl https://icelight-query-api.your-subdomain.workers.dev/tables/analytics/events
 ```
 
 ## Drizzle Cube Semantic API
@@ -77,7 +77,7 @@ The query worker includes a semantic layer powered by [Drizzle Cube](https://git
 ### Example Query
 
 ```bash
-curl -X POST https://cdpflare-query-api.your-subdomain.workers.dev/cubejs-api/v1/load \
+curl -X POST https://icelight-query-api.your-subdomain.workers.dev/cubejs-api/v1/load \
   -H "Content-Type: application/json" \
   -d '{
     "query": {
@@ -100,7 +100,7 @@ The semantic API automatically extracts fields from the `properties`, `traits`, 
 Edit `workers/query-api/src/cube-config.ts` to customize JSON field extraction:
 
 ```typescript
-import { type CubeJsonConfig, mergeCubeConfig } from '@cdpflare/query';
+import { type CubeJsonConfig, mergeCubeConfig } from '@icelight/query';
 
 // Merge custom fields with defaults
 export const cubeConfig: CubeJsonConfig = mergeCubeConfig({
@@ -137,7 +137,7 @@ export const cubeConfig: CubeJsonConfig = mergeCubeConfig({
 To use only the built-in defaults without customization:
 
 ```typescript
-import { DEFAULT_CUBE_CONFIG } from '@cdpflare/query';
+import { DEFAULT_CUBE_CONFIG } from '@icelight/query';
 export const cubeConfig = DEFAULT_CUBE_CONFIG;
 ```
 
@@ -146,7 +146,7 @@ export const cubeConfig = DEFAULT_CUBE_CONFIG;
 To completely replace the default configuration:
 
 ```typescript
-import { createCubeConfig } from '@cdpflare/query';
+import { createCubeConfig } from '@icelight/query';
 
 export const cubeConfig = createCubeConfig({
   properties: [
@@ -255,7 +255,7 @@ df = conn.execute("""
 from pyspark.sql import SparkSession
 
 spark = SparkSession.builder \
-    .appName("cdpflare-query") \
+    .appName("icelight-query") \
     .config("spark.sql.catalog.cloudflare", "org.apache.iceberg.spark.SparkCatalog") \
     .config("spark.sql.catalog.cloudflare.type", "rest") \
     .config("spark.sql.catalog.cloudflare.uri", "https://your-warehouse.r2.cloudflarestorage.com") \

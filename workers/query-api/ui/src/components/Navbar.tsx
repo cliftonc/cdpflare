@@ -12,9 +12,10 @@ export default function Navbar({ currentPage, onPageChange }: NavbarProps) {
   return (
     <div className="bg-base-100 shadow-lg border-b border-base-300">
       <div className="navbar container mx-auto max-w-7xl px-4">
-        <div className="flex-1">
-          <span className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-            cdpflare
+        <div className="flex-1 flex items-center gap-3">
+          <img src="/logo.png" alt="icelight" className="h-12 w-auto" />
+          <span className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+            icelight
           </span>
         </div>
         <div className="flex-none flex items-center gap-4">

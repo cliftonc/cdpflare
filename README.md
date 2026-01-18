@@ -1,10 +1,10 @@
-# cdpflare
+# icelight
 
 Stream JSON analytics events to Apache Iceberg tables on Cloudflare's data platform.
 
 ## Overview
 
-cdpflare provides a complete solution for collecting analytics events and storing them in queryable Iceberg tables using Cloudflare's infrastructure:
+icelight provides a complete solution for collecting analytics events and storing them in queryable Iceberg tables using Cloudflare's infrastructure:
 
 - **Event Ingestion**: RudderStack/Segment-compatible HTTP endpoints
 - **Data Storage**: Apache Iceberg tables on R2 with automatic compaction
@@ -42,8 +42,8 @@ Sign up for a free Cloudflare account at **[dash.cloudflare.com/sign-up](https:/
 ### Step 1: Clone & Install
 
 ```bash
-git clone https://github.com/your-org/cdpflare.git
-cd cdpflare
+git clone https://github.com/your-org/icelight.git
+cd icelight
 pnpm install
 ```
 
@@ -84,8 +84,8 @@ pnpm deploy:ingest
 
 You'll see output with your worker URL:
 ```
-Deployed cdpflare-event-ingest triggers
-  https://cdpflare-event-ingest.YOUR-SUBDOMAIN.workers.dev
+Deployed icelight-event-ingest triggers
+  https://icelight-event-ingest.YOUR-SUBDOMAIN.workers.dev
 ```
 
 ### Step 5: Test Ingestion
@@ -93,7 +93,7 @@ Deployed cdpflare-event-ingest triggers
 Send a test event:
 
 ```bash
-curl -X POST https://cdpflare-event-ingest.YOUR-SUBDOMAIN.workers.dev/v1/track \
+curl -X POST https://icelight-event-ingest.YOUR-SUBDOMAIN.workers.dev/v1/track \
   -H "Content-Type: application/json" \
   -d '{"userId":"test-user","event":"Test Event","properties":{"key":"value"}}'
 ```
@@ -118,10 +118,10 @@ pnpm deploy:query
 
 ```bash
 # Check health
-curl https://cdpflare-query-api.YOUR-SUBDOMAIN.workers.dev/health
+curl https://icelight-query-api.YOUR-SUBDOMAIN.workers.dev/health
 
 # Query events (after pipeline has processed data - may take a minute)
-curl -X POST https://cdpflare-query-api.YOUR-SUBDOMAIN.workers.dev/query \
+curl -X POST https://icelight-query-api.YOUR-SUBDOMAIN.workers.dev/query \
   -H "Content-Type: application/json" \
   -d '{"sql": "SELECT * FROM analytics.events LIMIT 10"}'
 ```
@@ -135,7 +135,7 @@ import { Analytics } from '@rudderstack/analytics-js';
 
 const analytics = new Analytics({
   writeKey: 'any-value', // Required by SDK, not validated if AUTH_ENABLED=false
-  dataPlaneUrl: 'https://cdpflare-event-ingest.YOUR-SUBDOMAIN.workers.dev'
+  dataPlaneUrl: 'https://icelight-event-ingest.YOUR-SUBDOMAIN.workers.dev'
 });
 
 // Track events
@@ -227,7 +227,7 @@ pnpm deploy:query
 
 The Query API includes a web-based Query Explorer and Event Simulator:
 
-**Live Demo**: https://cdpflare-query-api.clifton-cunningham.workers.dev/
+**Live Demo**: https://icelight-query-api.clifton-cunningham.workers.dev/
 
 - **Query Editor**: Write and execute SQL queries against your analytics data
 - **Event Simulator**: Send test events to your ingestion endpoint using the RudderStack SDK
@@ -249,7 +249,7 @@ The Query API includes a web-based Query Explorer and Event Simulator:
 The Query API includes a semantic layer that automatically extracts fields from JSON columns (`properties`, `traits`, `context`). This enables structured queries without writing raw SQL.
 
 ```bash
-curl -X POST https://cdpflare-query-api.YOUR-SUBDOMAIN.workers.dev/cubejs-api/v1/load \
+curl -X POST https://icelight-query-api.YOUR-SUBDOMAIN.workers.dev/cubejs-api/v1/load \
   -H "Content-Type: application/json" \
   -d '{
     "query": {
@@ -266,30 +266,30 @@ curl -X POST https://cdpflare-query-api.YOUR-SUBDOMAIN.workers.dev/cubejs-api/v1
 
 ```bash
 # Basic query - get recent events
-curl -X POST https://cdpflare-query-api.YOUR-SUBDOMAIN.workers.dev/query \
+curl -X POST https://icelight-query-api.YOUR-SUBDOMAIN.workers.dev/query \
   -H "Content-Type: application/json" \
   -d '{"sql": "SELECT * FROM analytics.events LIMIT 10"}'
 
 # Filter by event type
-curl -X POST https://cdpflare-query-api.YOUR-SUBDOMAIN.workers.dev/query \
+curl -X POST https://icelight-query-api.YOUR-SUBDOMAIN.workers.dev/query \
   -H "Content-Type: application/json" \
   -d '{"sql": "SELECT * FROM analytics.events WHERE type = '\''track'\'' LIMIT 10"}'
 
 # Filter by user
-curl -X POST https://cdpflare-query-api.YOUR-SUBDOMAIN.workers.dev/query \
+curl -X POST https://icelight-query-api.YOUR-SUBDOMAIN.workers.dev/query \
   -H "Content-Type: application/json" \
   -d '{"sql": "SELECT * FROM analytics.events WHERE user_id = '\''user-123'\'' LIMIT 10"}'
 
 # Get CSV output
-curl -X POST https://cdpflare-query-api.YOUR-SUBDOMAIN.workers.dev/query \
+curl -X POST https://icelight-query-api.YOUR-SUBDOMAIN.workers.dev/query \
   -H "Content-Type: application/json" \
   -d '{"sql": "SELECT * FROM analytics.events LIMIT 10", "format": "csv"}'
 
 # List tables
-curl https://cdpflare-query-api.YOUR-SUBDOMAIN.workers.dev/tables/analytics
+curl https://icelight-query-api.YOUR-SUBDOMAIN.workers.dev/tables/analytics
 
 # Describe table schema
-curl https://cdpflare-query-api.YOUR-SUBDOMAIN.workers.dev/tables/analytics/events
+curl https://icelight-query-api.YOUR-SUBDOMAIN.workers.dev/tables/analytics/events
 ```
 
 ### Query with Authentication
@@ -297,7 +297,7 @@ curl https://cdpflare-query-api.YOUR-SUBDOMAIN.workers.dev/tables/analytics/even
 If `API_TOKEN` is configured:
 
 ```bash
-curl -X POST https://cdpflare-query-api.YOUR-SUBDOMAIN.workers.dev/query \
+curl -X POST https://icelight-query-api.YOUR-SUBDOMAIN.workers.dev/query \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_API_TOKEN" \
   -d '{"sql": "SELECT * FROM analytics.events LIMIT 10"}'
@@ -339,7 +339,7 @@ pnpm deploy:duckdb
 ### Example Query
 
 ```bash
-curl -X POST https://cdpflare-duckdb-api.YOUR-SUBDOMAIN.workers.dev/query \
+curl -X POST https://icelight-duckdb-api.YOUR-SUBDOMAIN.workers.dev/query \
   -H "Content-Type: application/json" \
   -d '{"query": "SELECT * FROM r2_datalake.analytics.events LIMIT 10"}'
 ```
@@ -364,7 +364,7 @@ curl -X POST https://cdpflare-duckdb-api.YOUR-SUBDOMAIN.workers.dev/query \
 ## Project Structure
 
 ```
-cdpflare/
+icelight/
 ├── packages/
 │   ├── core/           # Shared types and validation
 │   ├── ingest/         # Ingestion library (Hono)
@@ -403,12 +403,12 @@ pnpm typecheck
 
 ```bash
 # Delete pipeline resources
-npx wrangler pipelines delete cdpflare_events_pipeline
-npx wrangler pipelines sinks delete cdpflare_events_sink
-npx wrangler pipelines streams delete cdpflare_events_stream
+npx wrangler pipelines delete icelight_events_pipeline
+npx wrangler pipelines sinks delete icelight_events_sink
+npx wrangler pipelines streams delete icelight_events_stream
 
 # Delete R2 bucket (will fail if not empty)
-npx wrangler r2 bucket delete cdpflare-data
+npx wrangler r2 bucket delete icelight-data
 ```
 
 ## Troubleshooting

@@ -1,6 +1,6 @@
-# Getting Started with cdpflare
+# Getting Started with icelight
 
-This guide walks you through setting up cdpflare from scratch.
+This guide walks you through setting up icelight from scratch.
 
 ## Prerequisites
 
@@ -19,8 +19,8 @@ wrangler login
 ## Step 1: Clone and Install
 
 ```bash
-git clone https://github.com/your-org/cdpflare.git
-cd cdpflare
+git clone https://github.com/your-org/icelight.git
+cd icelight
 pnpm install
 pnpm build
 ```
@@ -70,7 +70,7 @@ Edit `workers/event-ingest/wrangler.jsonc` to uncomment the pipeline binding:
 {
   "pipelines": [
     {
-      "pipeline": "cdpflare-events-pipeline",
+      "pipeline": "icelight-events-pipeline",
       "binding": "PIPELINE"
     }
   ]
@@ -119,7 +119,7 @@ pnpm deploy:query
 ### Send a test event
 
 ```bash
-curl -X POST https://cdpflare-event-ingest.your-subdomain.workers.dev/v1/track \
+curl -X POST https://icelight-event-ingest.your-subdomain.workers.dev/v1/track \
   -H "Content-Type: application/json" \
   -d '{
     "userId": "test-user",
@@ -135,7 +135,7 @@ curl -X POST https://cdpflare-event-ingest.your-subdomain.workers.dev/v1/track \
 Wait a minute for the pipeline to process, then:
 
 ```bash
-curl -X POST https://cdpflare-query-api.your-subdomain.workers.dev/query \
+curl -X POST https://icelight-query-api.your-subdomain.workers.dev/query \
   -H "Content-Type: application/json" \
   -d '{"sql": "SELECT * FROM analytics.events LIMIT 10"}'
 ```

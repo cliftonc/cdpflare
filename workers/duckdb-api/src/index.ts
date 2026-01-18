@@ -11,7 +11,7 @@
  * Environment variables:
  * - R2_TOKEN: Cloudflare API token with R2 + Data Catalog permissions
  * - R2_ENDPOINT: R2 catalog URI
- * - R2_CATALOG: Warehouse name (e.g., cdpflare-data)
+ * - R2_CATALOG: Warehouse name (e.g., icelight-data)
  * - API_TOKEN: (optional) Bearer token for API auth
  */
 
@@ -165,7 +165,7 @@ app.use('*', async (c: Context<{ Bindings: Env }>, next: Next) => {
 app.get('/_health', (c: Context<{ Bindings: Env }>) => {
   return c.json({
     status: 'ok',
-    service: 'cdpflare-duckdb-api',
+    service: 'icelight-duckdb-api',
     timestamp: new Date().toISOString(),
   });
 });
@@ -173,7 +173,7 @@ app.get('/_health', (c: Context<{ Bindings: Env }>) => {
 // Welcome endpoint
 app.get('/', (c: Context<{ Bindings: Env }>) => {
   return c.json({
-    name: 'cdpflare-duckdb-api',
+    name: 'icelight-duckdb-api',
     version: '0.1.0',
     description: 'DuckDB-powered query API for R2 Data Catalog',
     endpoints: {
@@ -199,7 +199,7 @@ app.get('/', (c: Context<{ Bindings: Env }>) => {
 app.all('*', async (c: Context<{ Bindings: Env }>) => {
   try {
     // Forward request to container
-    return await c.env.CONTAINER.get(c.env.CONTAINER.idFromName('cdpflare-duckdb')).fetch(c.req.raw);
+    return await c.env.CONTAINER.get(c.env.CONTAINER.idFromName('icelight-duckdb')).fetch(c.req.raw);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error('Worker error:', errorMessage);

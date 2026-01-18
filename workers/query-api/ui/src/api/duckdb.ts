@@ -12,7 +12,7 @@ interface DuckDbQueryRequest {
 }
 
 async function executeDuckDbQuery(request: DuckDbQueryRequest): Promise<DuckDbQueryResult> {
-  const token = localStorage.getItem('cdpflare_api_token');
+  const token = localStorage.getItem('icelight_api_token');
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -65,7 +65,7 @@ export function useExecuteDuckDbQuery() {
  * Export CSV from DuckDB query
  */
 export async function exportDuckDbCsv(sql: string): Promise<Blob> {
-  const token = localStorage.getItem('cdpflare_api_token');
+  const token = localStorage.getItem('icelight_api_token');
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',

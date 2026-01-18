@@ -1,6 +1,6 @@
 # SDK Integration Guide
 
-cdpflare is compatible with RudderStack, Segment, and similar analytics SDKs.
+icelight is compatible with RudderStack, Segment, and similar analytics SDKs.
 
 ## RudderStack JavaScript SDK
 
@@ -17,7 +17,7 @@ import { Analytics } from '@rudderstack/analytics-js';
 
 const analytics = new Analytics({
   writeKey: 'your-write-key', // Any value if auth disabled, or your AUTH_TOKEN
-  dataPlaneUrl: 'https://cdpflare-event-ingest.your-subdomain.workers.dev',
+  dataPlaneUrl: 'https://icelight-event-ingest.your-subdomain.workers.dev',
   plugins: [],
 });
 
@@ -62,7 +62,7 @@ analytics.page('Home', {
     analytics.load("YOUR_WRITE_KEY", {
       integrations: {
         "Segment.io": {
-          apiHost: "cdpflare-event-ingest.your-subdomain.workers.dev/v1"
+          apiHost: "icelight-event-ingest.your-subdomain.workers.dev/v1"
         }
       }
     });
@@ -80,7 +80,7 @@ import { Analytics } from '@segment/analytics-node';
 
 const analytics = new Analytics({
   writeKey: 'your-write-key',
-  host: 'https://cdpflare-event-ingest.your-subdomain.workers.dev',
+  host: 'https://icelight-event-ingest.your-subdomain.workers.dev',
 });
 
 // Track server-side events
@@ -107,7 +107,7 @@ analytics.identify({
 
 ```javascript
 async function trackEvent(event) {
-  const response = await fetch('https://cdpflare-event-ingest.your-subdomain.workers.dev/v1/track', {
+  const response = await fetch('https://icelight-event-ingest.your-subdomain.workers.dev/v1/track', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -132,7 +132,7 @@ For high-volume scenarios, use the batch endpoint:
 
 ```javascript
 async function sendBatch(events) {
-  const response = await fetch('https://cdpflare-event-ingest.your-subdomain.workers.dev/v1/batch', {
+  const response = await fetch('https://icelight-event-ingest.your-subdomain.workers.dev/v1/batch', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

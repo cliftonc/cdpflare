@@ -1,4 +1,4 @@
-import { createIngestApp } from '@cdpflare/ingest';
+import { createIngestApp } from '@icelight/ingest';
 
 // Create and export the Hono app
 // The app handles all analytics SDK endpoints:

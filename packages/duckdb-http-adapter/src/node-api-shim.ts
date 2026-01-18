@@ -8,7 +8,7 @@
  * Usage in wrangler.jsonc:
  * {
  *   "alias": {
- *     "@duckdb/node-api": "@cdpflare/duckdb-http-adapter/node-api-shim"
+ *     "@duckdb/node-api": "@icelight/duckdb-http-adapter/node-api-shim"
  *   }
  * }
  */
