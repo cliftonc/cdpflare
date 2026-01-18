@@ -1,7 +1,7 @@
 import TokenInput from './TokenInput.tsx';
 import ThemeToggle from './ThemeToggle.tsx';
 
-type Page = 'query' | 'simulator';
+type Page = 'query' | 'duckdb' | 'simulator' | 'analysis';
 
 interface NavbarProps {
   currentPage: Page;
@@ -24,7 +24,14 @@ export default function Navbar({ currentPage, onPageChange }: NavbarProps) {
               className={`tab ${currentPage === 'query' ? 'tab-active' : ''}`}
               onClick={() => onPageChange('query')}
             >
-              Query Editor
+              R2 SQL
+            </button>
+            <button
+              role="tab"
+              className={`tab ${currentPage === 'duckdb' ? 'tab-active' : ''}`}
+              onClick={() => onPageChange('duckdb')}
+            >
+              DuckDB
             </button>
             <button
               role="tab"
@@ -32,6 +39,13 @@ export default function Navbar({ currentPage, onPageChange }: NavbarProps) {
               onClick={() => onPageChange('simulator')}
             >
               Event Simulator
+            </button>
+            <button
+              role="tab"
+              className={`tab ${currentPage === 'analysis' ? 'tab-active' : ''}`}
+              onClick={() => onPageChange('analysis')}
+            >
+              Analysis
             </button>
           </div>
           <div className="flex items-center gap-2">

@@ -99,6 +99,11 @@ async function initDuckDB() {
           );
         `);
         console.log('[DUCKDB] R2 catalog attached as r2_datalake');
+
+        // Set r2_datalake.analytics as default catalog+schema so queries can use just table names
+        // instead of r2_datalake.analytics.events
+        await connection.run(`USE r2_datalake.analytics;`);
+        console.log('[DUCKDB] Default catalog+schema set to r2_datalake.analytics');
       } catch (catalogError) {
         const msg = catalogError instanceof Error ? catalogError.message : String(catalogError);
         console.error('[DUCKDB] R2 catalog attachment failed:', msg);

@@ -1,23 +1,16 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { RudderAnalytics } from '@rudderstack/analytics-js';
+// Use bundled version to avoid dynamic CDN plugin loading at runtime
+import { RudderAnalytics } from '@rudderstack/analytics-js/bundled';
 
 interface EndpointConfigProps {
   onSdkReady: (ready: boolean, analytics: RudderAnalytics | null) => void;
 }
 
 function deriveIngestUrl(): string {
-  // For local development (localhost), use the same origin since Vite proxies /v1/* routes
-  // For production (workers.dev), derive by replacing 'query-api' with 'event-ingest'
+  // Always use the current origin - both local dev and production proxy /v1/* routes
+  // through the query-api worker, so we stay same-origin and avoid CORS issues
   const { hostname, protocol, port } = window.location;
-
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    // Local dev: use same origin, Vite will proxy /v1/* to the ingest worker
-    return `${protocol}//${hostname}${port ? ':' + port : ''}`;
-  }
-
-  // Production: derive ingest URL from query-api URL
-  const derivedHostname = hostname.replace('query-api', 'event-ingest');
-  return `${protocol}//${derivedHostname}`;
+  return `${protocol}//${hostname}${port ? ':' + port : ''}`;
 }
 
 const STORAGE_KEY_ENDPOINT = 'cdpflare_ingest_endpoint';

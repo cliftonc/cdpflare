@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
-import type { RudderAnalytics } from '@rudderstack/analytics-js';
+// Use bundled version to avoid dynamic CDN plugin loading at runtime
+import type { RudderAnalytics } from '@rudderstack/analytics-js/bundled';
 
 export interface EventLogEntry {
   id: string;

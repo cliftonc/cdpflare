@@ -19,6 +19,10 @@
   },
   "dependencies": {
     "@cdpflare/core": "workspace:*",
+    "@cdpflare/duckdb-http-adapter": "workspace:*",
+    "@leonardovida-md/drizzle-neo-duckdb": "^1.2.2",
+    "drizzle-cube": "^0.3.10",
+    "drizzle-orm": "^0.44.0",
     "hono": "^4.6.0"
   },
   "devDependencies": {

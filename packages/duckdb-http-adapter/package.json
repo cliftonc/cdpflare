@@ -1,0 +1,29 @@
+{
+  "name": "@cdpflare/duckdb-http-adapter",
+  "version": "0.1.0",
+  "description": "HTTP adapter for drizzle-duckdb to query cdpflare DuckDB API",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./node-api-shim": {
+      "types": "./dist/node-api-shim.d.ts",
+      "import": "./dist/node-api-shim.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "test": "tsx test/basic.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  }
+}

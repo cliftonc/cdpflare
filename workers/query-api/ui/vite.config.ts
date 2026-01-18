@@ -27,9 +27,20 @@ export default defineConfig({
         changeOrigin: true,
         secure: true,
       },
+      '/duckdb': {
+        target: 'https://cdpflare-query-api.clifton-cunningham.workers.dev',
+        changeOrigin: true,
+        secure: true,
+      },
       // Proxy ingest API routes for local development
       '/v1': {
         target: 'https://cdpflare-event-ingest.clifton-cunningham.workers.dev',
+        changeOrigin: true,
+        secure: true,
+      },
+      // Proxy cube API routes for local development
+      '/cubejs-api': {
+        target: 'https://cdpflare-query-api.clifton-cunningham.workers.dev',
         changeOrigin: true,
         secure: true,
       },
