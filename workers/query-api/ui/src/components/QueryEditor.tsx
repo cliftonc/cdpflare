@@ -7,6 +7,7 @@ interface QueryEditorProps {
   onClear: () => void;
   isLoading: boolean;
   textareaRef?: RefObject<HTMLTextAreaElement | null>;
+  onBlur?: () => void;
 }
 
 export default function QueryEditor({
@@ -16,6 +17,7 @@ export default function QueryEditor({
   onClear,
   isLoading,
   textareaRef,
+  onBlur,
 }: QueryEditorProps) {
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -38,6 +40,7 @@ export default function QueryEditor({
           value={sql}
           onChange={(e: ChangeEvent<HTMLTextAreaElement>) => onSqlChange(e.target.value)}
           onKeyDown={handleKeyDown}
+          onBlur={onBlur}
           disabled={isLoading}
         />
         <div className="flex justify-end gap-2 mt-2">

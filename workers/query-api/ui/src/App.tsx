@@ -7,10 +7,10 @@ import AnalysisPage from './pages/AnalysisPage.tsx';
 
 function getPageFromHash(): Page {
   const hash = window.location.hash.slice(1); // Remove '#'
+  if (hash === 'query') return 'query';
   if (hash === 'duckdb') return 'duckdb';
   if (hash === 'simulator') return 'simulator';
-  if (hash === 'analysis') return 'analysis';
-  return 'query';
+  return 'analysis';
 }
 
 export default function App() {
@@ -25,7 +25,7 @@ export default function App() {
   }, []);
 
   const handlePageChange = (page: Page) => {
-    window.location.hash = page === 'query' ? '' : page;
+    window.location.hash = page === 'analysis' ? '' : page;
     setCurrentPage(page);
   };
 

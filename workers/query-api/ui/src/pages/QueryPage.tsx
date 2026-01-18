@@ -5,8 +5,11 @@ import StatusBar from '../components/StatusBar.tsx';
 import SchemaExplorer from '../components/SchemaExplorer.tsx';
 import { useExecuteQuery, type QueryResult } from '../api/query.ts';
 
+const R2_SQL_STORAGE_KEY = 'icelight_r2_sql';
+const DEFAULT_SQL = 'SELECT * FROM analytics.events LIMIT 100';
+
 export default function QueryPage() {
-  const [sql, setSql] = useState('SELECT * FROM analytics.events LIMIT 100');
+  const [sql, setSql] = useState(() => localStorage.getItem(R2_SQL_STORAGE_KEY) ?? DEFAULT_SQL);
   const [result, setResult] = useState<QueryResult | null>(null);
   const [executionTime, setExecutionTime] = useState<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -83,6 +86,10 @@ export default function QueryPage() {
     }
   }, [sql]);
 
+  const handleBlur = useCallback(() => {
+    localStorage.setItem(R2_SQL_STORAGE_KEY, sql);
+  }, [sql]);
+
   return (
     <div className="container mx-auto p-4 max-w-7xl">
       <div className="flex gap-4">
@@ -100,6 +107,7 @@ export default function QueryPage() {
             onClear={handleClear}
             isLoading={mutation.isPending}
             textareaRef={textareaRef}
+            onBlur={handleBlur}
           />
 
           <StatusBar

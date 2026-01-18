@@ -4,8 +4,11 @@ import ResultsTable from '../components/ResultsTable.tsx';
 import StatusBar from '../components/StatusBar.tsx';
 import { useExecuteDuckDbQuery, exportDuckDbCsv, type DuckDbQueryResult } from '../api/duckdb.ts';
 
+const DUCKDB_SQL_STORAGE_KEY = 'icelight_duckdb_sql';
+const DEFAULT_SQL = 'SELECT * FROM r2_datalake.analytics.events LIMIT 100';
+
 export default function DuckDbPage() {
-  const [sql, setSql] = useState('SELECT * FROM r2_datalake.analytics.events LIMIT 100');
+  const [sql, setSql] = useState(() => localStorage.getItem(DUCKDB_SQL_STORAGE_KEY) ?? DEFAULT_SQL);
   const [result, setResult] = useState<DuckDbQueryResult | null>(null);
   const [executionTime, setExecutionTime] = useState<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -64,6 +67,10 @@ export default function DuckDbPage() {
     }
   }, [sql]);
 
+  const handleBlur = useCallback(() => {
+    localStorage.setItem(DUCKDB_SQL_STORAGE_KEY, sql);
+  }, [sql]);
+
   return (
     <div className="container mx-auto p-4 max-w-7xl">
       <div className="flex gap-4">
@@ -115,6 +122,7 @@ export default function DuckDbPage() {
             onClear={handleClear}
             isLoading={mutation.isPending}
             textareaRef={textareaRef}
+            onBlur={handleBlur}
           />
 
           <StatusBar
