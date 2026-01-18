@@ -1,6 +1,6 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { CubeProvider, AnalyticsDashboard } from 'drizzle-cube/client'
-import { useDefaultDashboard, useUpdateDashboard } from '../hooks/useDashboards'
+import { useDefaultDashboard, useUpdateDashboard, useResetDashboard } from '../hooks/useDashboards'
 import type { DashboardConfig } from '../types/dashboard'
 
 const apiOptions = { apiUrl: '/cubejs-api/v1' }
@@ -9,8 +9,19 @@ const features = { useAnalysisBuilder: true }
 export default function DashboardPage() {
   const { data: dashboard, isLoading, error } = useDefaultDashboard()
   const { mutateAsync: updateDashboard } = useUpdateDashboard()
+  const { mutateAsync: resetDashboard, isPending: isResetting } = useResetDashboard()
+  const [showResetConfirm, setShowResetConfirm] = useState(false)
 
   const dashboardId = dashboard?.id
+
+  const handleReset = useCallback(async () => {
+    try {
+      await resetDashboard()
+      setShowResetConfirm(false)
+    } catch (err) {
+      console.error('Failed to reset dashboard:', err)
+    }
+  }, [resetDashboard])
 
   const handleSave = useCallback(
     async (config: DashboardConfig) => {
@@ -90,11 +101,38 @@ export default function DashboardPage() {
   return (
     <CubeProvider apiOptions={apiOptions} features={resolvedFeatures}>
       <div className="container mx-auto p-4 max-w-7xl">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold">{dashboard.name}</h1>
-          {dashboard.description && (
-            <p className="mt-1 text-base-content/60">{dashboard.description}</p>
-          )}
+        <div className="mb-6 flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">{dashboard.name}</h1>
+            {dashboard.description && (
+              <p className="mt-1 text-base-content/60">{dashboard.description}</p>
+            )}
+          </div>
+          <button
+            className="btn btn-outline btn-sm"
+            onClick={() => setShowResetConfirm(true)}
+            disabled={isResetting}
+          >
+            {isResetting ? (
+              <span className="loading loading-spinner loading-xs"></span>
+            ) : (
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+            )}
+            Reset Dashboard
+          </button>
         </div>
 
         <AnalyticsDashboard
@@ -102,6 +140,42 @@ export default function DashboardPage() {
           editable={true}
           onSave={handleSave}
         />
+
+        {/* Reset Confirmation Modal */}
+        {showResetConfirm && (
+          <div className="modal modal-open">
+            <div className="modal-box">
+              <h3 className="font-bold text-lg">Reset Dashboard?</h3>
+              <p className="py-4">
+                This will restore the dashboard to its default configuration. Any
+                customizations you've made will be lost.
+              </p>
+              <div className="modal-action">
+                <button
+                  className="btn btn-ghost"
+                  onClick={() => setShowResetConfirm(false)}
+                  disabled={isResetting}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn btn-primary"
+                  onClick={handleReset}
+                  disabled={isResetting}
+                >
+                  {isResetting ? (
+                    <span className="loading loading-spinner loading-xs"></span>
+                  ) : null}
+                  Reset
+                </button>
+              </div>
+            </div>
+            <div
+              className="modal-backdrop"
+              onClick={() => setShowResetConfirm(false)}
+            ></div>
+          </div>
+        )}
       </div>
     </CubeProvider>
   )

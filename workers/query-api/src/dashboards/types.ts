@@ -1,13 +1,22 @@
-// Re-export drizzle-cube client dashboard types so the worker stays in sync
+// Import drizzle-cube client dashboard types for local use
+import type {
+  PortletConfig,
+  ChartType,
+  ChartAxisConfig,
+  ChartDisplayConfig,
+  DashboardConfig,
+  CubeQuery,
+} from 'drizzle-cube/client';
+
+// Re-export for consumers
 export type {
   PortletConfig,
   ChartType,
   ChartAxisConfig,
   ChartDisplayConfig,
   DashboardConfig,
-  DashboardFilter,
   CubeQuery,
-} from 'drizzle-cube/client';
+};
 
 /**
  * Dashboard record as stored in the database

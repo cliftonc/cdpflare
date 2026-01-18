@@ -13,6 +13,7 @@ import type {
   DashboardListResponse,
   DashboardResponse,
 } from './types.js';
+import { defaultDashboardConfig } from './default-dashboard.js';
 
 /**
  * Environment type for dashboard routes
@@ -96,6 +97,42 @@ export function createDashboardRoutes() {
     }
 
     return c.json({ success: true, data: parseRow(rows[0]) } satisfies DashboardResponse);
+  });
+
+  // POST /api/dashboards/default/reset - Reset the default dashboard to its original config
+  app.post('/default/reset', async (c) => {
+    const db = createDb(c.env.DB!);
+
+    // Find the default dashboard
+    const existing = await db
+      .select()
+      .from(dashboards)
+      .where(and(eq(dashboards.isDefault, true), eq(dashboards.isActive, true)))
+      .limit(1);
+
+    if (existing.length === 0) {
+      return c.json({ success: false, error: 'No default dashboard found' } satisfies DashboardResponse, 404);
+    }
+
+    const timestamp = now();
+
+    // Reset the config to the default
+    await db
+      .update(dashboards)
+      .set({
+        config: JSON.stringify(defaultDashboardConfig),
+        updatedAt: timestamp,
+      })
+      .where(eq(dashboards.id, existing[0].id));
+
+    // Fetch updated record
+    const updated = await db
+      .select()
+      .from(dashboards)
+      .where(eq(dashboards.id, existing[0].id))
+      .limit(1);
+
+    return c.json({ success: true, data: parseRow(updated[0]) } satisfies DashboardResponse);
   });
 
   // GET /api/dashboards/:id - Get a specific dashboard

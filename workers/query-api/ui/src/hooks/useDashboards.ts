@@ -179,3 +179,29 @@ export function useSetDefaultDashboard() {
     }
   })
 }
+
+// Reset default dashboard to original config
+export function useResetDashboard() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (): Promise<DashboardRecord> => {
+      const response = await fetch(`${API_BASE}/default/reset`, {
+        method: 'POST'
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to reset dashboard')
+      }
+
+      const data: DashboardResponse = await response.json()
+      if (!data.success || !data.data) {
+        throw new Error(data.error || 'Failed to reset dashboard')
+      }
+      return data.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dashboards'] })
+    }
+  })
+}
