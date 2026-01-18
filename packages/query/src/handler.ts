@@ -16,6 +16,7 @@ import { HttpDuckDBConnection } from '@cdpflare/duckdb-http-adapter';
 import { events } from './schema/events.js';
 import { createCubeApp } from 'drizzle-cube/adapters/hono';
 import { allCubes } from './cubes/events.js';
+import type { Cube } from 'drizzle-cube/server';
 
 export interface QueryEnv {
   CF_ACCOUNT_ID: string;
@@ -51,6 +52,14 @@ export interface QueryResponse {
 type QueryContext = Context<{ Bindings: QueryEnv }>;
 
 /**
+ * Options for creating the query app
+ */
+export interface QueryAppOptions {
+  /** Custom cube definitions (defaults to allCubes from events.ts) */
+  cubes?: Cube[];
+}
+
+/**
  * Get R2 SQL config from environment
  */
 function getR2Config(env: QueryEnv): R2SqlConfig {
@@ -64,7 +73,8 @@ function getR2Config(env: QueryEnv): R2SqlConfig {
 /**
  * Create the Hono app for query API
  */
-export function createQueryApp() {
+export function createQueryApp(options: QueryAppOptions = {}) {
+  const cubes = options.cubes ?? allCubes;
   const app = new Hono<{ Bindings: QueryEnv }>();
 
   // CORS middleware
@@ -118,7 +128,7 @@ export function createQueryApp() {
 
   // Mount cube API routes
   app.all('/cubejs-api/*', async (c) => {
-    return handleCubeRequest(c);
+    return handleCubeRequest(c, cubes);
   });
 
   return app;
@@ -360,7 +370,7 @@ async function handleIngestProxy(c: QueryContext) {
 /**
  * Handle cube API request (via drizzle-cube)
  */
-async function handleCubeRequest(c: QueryContext) {
+async function handleCubeRequest(c: QueryContext, cubes: Cube[]) {
   // Check if DuckDB API is configured (Service Binding or URL)
   if (!c.env.DUCKDB_API && !c.env.DUCKDB_API_URL) {
     return c.json({ error: 'DuckDB API not configured' }, 500);
@@ -382,7 +392,7 @@ async function handleCubeRequest(c: QueryContext) {
   // Create the cube app with drizzle-cube
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const cubeApp = createCubeApp({
-    cubes: allCubes as any,
+    cubes: cubes as any,
     drizzle: db,
     schema: { events },
     extractSecurityContext: async () => ({}),

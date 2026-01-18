@@ -62,6 +62,134 @@ curl https://cdpflare-query-api.your-subdomain.workers.dev/tables/analytics
 curl https://cdpflare-query-api.your-subdomain.workers.dev/tables/analytics/events
 ```
 
+## Drizzle Cube Semantic API
+
+The query worker includes a semantic layer powered by [Drizzle Cube](https://github.com/nickmitchko/drizzle-cube) that provides a structured query API with automatic JSON field extraction.
+
+### Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/cubejs-api/v1/meta` | Get available cubes, dimensions, and measures |
+| POST | `/cubejs-api/v1/load` | Execute a semantic query |
+| POST | `/cubejs-api/v1/dry-run` | Validate query and preview SQL |
+
+### Example Query
+
+```bash
+curl -X POST https://cdpflare-query-api.your-subdomain.workers.dev/cubejs-api/v1/load \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": {
+      "dimensions": ["Events.type", "Events.product", "Events.email"],
+      "measures": ["Events.count", "Events.totalRevenue"],
+      "filters": [
+        {"dimension": "Events.type", "operator": "equals", "values": ["track"]}
+      ],
+      "limit": 100
+    }
+  }'
+```
+
+### Configuring JSON Field Extraction
+
+The semantic API automatically extracts fields from the `properties`, `traits`, and `context` JSON columns. Each deployment can customize which fields are exposed as dimensions.
+
+#### Configuration File
+
+Edit `workers/query-api/src/cube-config.ts` to customize JSON field extraction:
+
+```typescript
+import { type CubeJsonConfig, mergeCubeConfig } from '@cdpflare/query';
+
+// Merge custom fields with defaults
+export const cubeConfig: CubeJsonConfig = mergeCubeConfig({
+  // Add custom properties fields
+  properties: [
+    { name: 'customField', title: 'Custom Field', path: '$.custom_field', type: 'string' },
+    { name: 'score', title: 'Score', path: '$.score', type: 'number' },
+  ],
+
+  // Add custom traits fields
+  traits: [
+    { name: 'department', title: 'Department', path: '$.department', type: 'string' },
+  ],
+
+  // Add custom context fields
+  context: [
+    { name: 'region', title: 'Region', path: '$.geo.region', type: 'string' },
+  ],
+});
+```
+
+#### Field Configuration Options
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `name` | string | Yes | Dimension name (camelCase, used in queries) |
+| `title` | string | No | Human-readable title for UI |
+| `path` | string | Yes | JSONPath to extract (e.g., `$.field`, `$.nested.field`) |
+| `type` | string | Yes | Data type: `string`, `number`, or `boolean` |
+| `shown` | boolean | No | Whether to show in UI (default: true) |
+
+#### Using Defaults Only
+
+To use only the built-in defaults without customization:
+
+```typescript
+import { DEFAULT_CUBE_CONFIG } from '@cdpflare/query';
+export const cubeConfig = DEFAULT_CUBE_CONFIG;
+```
+
+#### Replacing Defaults Entirely
+
+To completely replace the default configuration:
+
+```typescript
+import { createCubeConfig } from '@cdpflare/query';
+
+export const cubeConfig = createCubeConfig({
+  properties: [
+    { name: 'myField', title: 'My Field', path: '$.my_field', type: 'string' },
+  ],
+  traits: [],
+  context: [],
+});
+```
+
+### Default Dimensions
+
+The following JSON fields are extracted by default:
+
+**Properties (from track/page/screen events):**
+- `orderId`, `revenue`, `currency`, `product`, `quantity`
+- `url`, `title`, `referrer` (page events)
+- `batchId`, `sequence` (batch events)
+- `screenName`, `appVersion`, `platform`, `deviceType` (screen events)
+
+**Traits (from identify/group events):**
+- `email`, `traitName`, `plan`, `createdAt`
+- `industry`, `employees` (group events)
+
+**Context (environment data):**
+- `ipAddress`, `userAgent`, `locale`, `timezone`
+- `ctxDeviceType`, `ctxDeviceId`, `deviceManufacturer`, `deviceModel`
+- `osName`, `osVersion`
+- `pageUrl`, `pagePath`, `pageTitle`, `pageReferrer`
+- `campaignSource`, `campaignMedium`, `campaignName`, `campaignTerm`, `campaignContent`
+- `libraryName`, `libraryVersion`
+- `screenWidth`, `screenHeight`, `screenDensity`
+
+### Default Measures
+
+| Measure | Description |
+|---------|-------------|
+| `Events.count` | Total event count |
+| `Events.uniqueUsers` | Count of distinct user IDs |
+| `Events.uniqueAnonymous` | Count of distinct anonymous IDs |
+| `Events.totalRevenue` | Sum of revenue (when revenue field exists) |
+| `Events.avgRevenue` | Average revenue (when revenue field exists) |
+
 ## Wrangler CLI
 
 Query directly via the Wrangler CLI:
