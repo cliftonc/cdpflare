@@ -98,30 +98,35 @@ export function toSnakeCase(str: string): string {
 }
 
 /**
- * Convert a timestamp to Unix milliseconds
+ * Convert a timestamp to ISO 8601 string
  * Accepts ISO strings, Date objects, or Unix ms numbers
  */
-export function toUnixMs(value: string | number | Date | undefined | null): number | null {
+export function toIsoString(value: string | number | Date | undefined | null): string | null {
   if (value === undefined || value === null) {
     return null;
   }
   if (typeof value === 'number') {
-    return value;
+    // Convert Unix milliseconds to ISO string
+    return new Date(value).toISOString();
   }
   if (value instanceof Date) {
-    return value.getTime();
+    return value.toISOString();
   }
-  // Parse ISO string
+  // Validate and normalize ISO string
   const parsed = Date.parse(value);
-  return isNaN(parsed) ? null : parsed;
+  if (isNaN(parsed)) {
+    return null;
+  }
+  // Return normalized ISO string
+  return new Date(parsed).toISOString();
 }
 
 /**
  * Flatten an analytics event for Iceberg storage
- * Timestamps are converted to Unix milliseconds for Cloudflare Pipelines
+ * Timestamps are converted to ISO 8601 strings for Cloudflare Pipelines
  */
 export function flattenEvent(event: AnalyticsEvent, receivedAt: string): FlattenedEvent {
-  const receivedAtMs = toUnixMs(receivedAt) || Date.now();
+  const receivedAtIso = toIsoString(receivedAt) || new Date().toISOString();
 
   return {
     message_id: event.messageId || generateMessageId(),
@@ -133,9 +138,9 @@ export function flattenEvent(event: AnalyticsEvent, receivedAt: string): Flatten
     properties: 'properties' in event ? event.properties || null : null,
     traits: 'traits' in event ? event.traits || null : null,
     context: event.context || null,
-    timestamp: toUnixMs(event.timestamp) || receivedAtMs,
-    sent_at: toUnixMs(event.sentAt),
-    received_at: receivedAtMs,
+    timestamp: toIsoString(event.timestamp) || receivedAtIso,
+    sent_at: toIsoString(event.sentAt),
+    received_at: receivedAtIso,
   };
 }
 

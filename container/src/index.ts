@@ -20,6 +20,7 @@ const app = new Hono();
 let initError: string | null = null;
 let duckdbReady = false;
 let connection: any = null;
+let r2CatalogAttached = false;
 
 // Promise that resolves when DuckDB is ready
 let duckdbReadyResolve: () => void;
@@ -100,10 +101,17 @@ async function initDuckDB() {
         `);
         console.log('[DUCKDB] R2 catalog attached as r2_datalake');
 
+        // Small delay to ensure catalog is fully ready
+        await new Promise(resolve => setTimeout(resolve, 500));
+
         // Set r2_datalake.analytics as default catalog+schema so queries can use just table names
         // instead of r2_datalake.analytics.events
+        console.log('[DUCKDB] Setting default catalog+schema...');
         await connection.run(`USE r2_datalake.analytics;`);
         console.log('[DUCKDB] Default catalog+schema set to r2_datalake.analytics');
+
+        // Mark catalog as attached so we re-run USE before each query
+        r2CatalogAttached = true;
       } catch (catalogError) {
         const msg = catalogError instanceof Error ? catalogError.message : String(catalogError);
         console.error('[DUCKDB] R2 catalog attachment failed:', msg);
@@ -156,6 +164,7 @@ app.get('/_debug', (c) => {
     r2_endpoint: process.env.R2_ENDPOINT || 'NOT SET',
     r2_catalog: process.env.R2_CATALOG || 'NOT SET',
     duckdb_ready: duckdbReady,
+    r2_catalog_attached: r2CatalogAttached,
     init_error: initError,
   });
 });
@@ -174,6 +183,12 @@ app.post('/query', async (c) => {
 
   try {
     const body = await c.req.json();
+
+    // Ensure default catalog+schema is set before each query (in case context was reset)
+    if (r2CatalogAttached) {
+      await connection.run(`USE r2_datalake.analytics;`);
+    }
+
     const reader = await connection.runAndReadAll(body.query);
     return c.json({
       success: true,

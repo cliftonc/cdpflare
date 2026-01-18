@@ -1,34 +1,24 @@
 #!/usr/bin/env tsx
 /**
  * Teardown script for cdpflare infrastructure
- * Deletes Pipeline, Sink, Stream, and optionally R2 bucket
+ * Deletes all resources created by setup-pipeline.ts
  *
  * Usage: pnpm teardown
  *
  * Options:
+ * - --confirm: Skip confirmation prompt
  * - --keep-bucket: Don't delete the R2 bucket (preserves data)
- * - --force: Skip confirmation prompt
  *
- * Environment variables (should match setup):
- * - BUCKET_NAME: R2 bucket name (default: cdpflare-data)
- * - PIPELINE_NAME: Pipeline name (default: cdpflare-events-pipeline)
+ * Reads PROJECT_NAME from .env file to determine resource names.
  */
 
 import { execSync } from 'child_process';
+import { existsSync, readFileSync, unlinkSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 import * as readline from 'readline';
 
-// Configuration with defaults
-const config = {
-  bucketName: process.env.BUCKET_NAME || 'cdpflare-data',
-  pipelineName: process.env.PIPELINE_NAME || 'cdpflare-events-pipeline',
-  streamName: process.env.STREAM_NAME || 'cdpflare-events-stream',
-  sinkName: process.env.SINK_NAME || 'cdpflare-events-sink',
-};
-
-// Parse CLI args
-const args = process.argv.slice(2);
-const keepBucket = args.includes('--keep-bucket');
-const force = args.includes('--force');
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // Colors for output
 const colors = {
@@ -37,15 +27,176 @@ const colors = {
   yellow: '\x1b[33m',
   red: '\x1b[31m',
   cyan: '\x1b[36m',
+  bold: '\x1b[1m',
+  dim: '\x1b[2m',
 };
 
 function log(message: string, color: keyof typeof colors = 'reset') {
   console.log(`${colors[color]}${message}${colors.reset}`);
 }
 
+// Path to .env file
+const envFilePath = join(__dirname, '..', '.env');
+
+/**
+ * Load environment variables from .env file
+ */
+function loadEnvFile(): Record<string, string> {
+  const env: Record<string, string> = {};
+  if (existsSync(envFilePath)) {
+    const content = readFileSync(envFilePath, 'utf-8');
+    for (const line of content.split('\n')) {
+      const trimmed = line.trim();
+      if (trimmed && !trimmed.startsWith('#')) {
+        const eqIndex = trimmed.indexOf('=');
+        if (eqIndex > 0) {
+          const key = trimmed.slice(0, eqIndex).trim();
+          let value = trimmed.slice(eqIndex + 1).trim();
+          // Remove surrounding quotes if present
+          if ((value.startsWith('"') && value.endsWith('"')) ||
+              (value.startsWith("'") && value.endsWith("'"))) {
+            value = value.slice(1, -1);
+          }
+          env[key] = value;
+        }
+      }
+    }
+  }
+  return env;
+}
+
+// Parse CLI args
+const args = process.argv.slice(2);
+const keepBucket = args.includes('--keep-bucket');
+const confirmed = args.includes('--confirm');
+
+// Load saved environment variables
+const savedEnv = loadEnvFile();
+const projectName = savedEnv.CDPFLARE_PROJECT_NAME || 'cdpflare';
+
+// Derive all names from project name (matching setup-pipeline.ts)
+const underscoreName = projectName.replace(/-/g, '_');
+const config = {
+  bucketName: `${projectName}-data`,
+  streamName: `${underscoreName}_events_stream`,
+  sinkName: `${underscoreName}_events_sink`,
+  pipelineName: `${underscoreName}_events_pipeline`,
+};
+
+// Worker configs to delete
+const workerLocalConfigs = [
+  join(__dirname, '..', 'workers', 'event-ingest', 'wrangler.local.jsonc'),
+  join(__dirname, '..', 'workers', 'duckdb-api', 'wrangler.local.jsonc'),
+  join(__dirname, '..', 'workers', 'query-api', 'wrangler.local.jsonc'),
+];
+
+// Worker names (derived from wrangler.jsonc files)
+const workerNames = [
+  'cdpflare-event-ingest',
+  'cdpflare-duckdb-api',
+  'cdpflare-query-api',
+];
+
+// Container names (derived from worker name + container binding name)
+const containerNames = [
+  'cdpflare-duckdb-api-duckdbcontainer',
+];
+
+function runQuiet(command: string): string | null {
+  try {
+    return execSync(command, {
+      encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Look up resource IDs from their names
+ */
+interface ResourceIds {
+  streamId: string | null;
+  sinkId: string | null;
+  pipelineId: string | null;
+  containerIds: Map<string, string>;
+}
+
+function lookupResourceIds(): ResourceIds {
+  const ids: ResourceIds = {
+    streamId: null,
+    sinkId: null,
+    pipelineId: null,
+    containerIds: new Map(),
+  };
+
+  // Look up container IDs
+  const containersOutput = runQuiet('npx wrangler containers list');
+  if (containersOutput) {
+    try {
+      const containers = JSON.parse(containersOutput) as Array<{ id: string; name: string }>;
+      for (const container of containers) {
+        if (containerNames.includes(container.name)) {
+          ids.containerIds.set(container.name, container.id);
+        }
+      }
+    } catch {
+      // Failed to parse JSON, try line-by-line
+    }
+  }
+
+  // Look up stream ID
+  const streamsOutput = runQuiet('npx wrangler pipelines streams list');
+  if (streamsOutput) {
+    const lines = streamsOutput.split('\n');
+    for (const line of lines) {
+      if (line.includes(config.streamName)) {
+        const idMatch = line.match(/([a-f0-9]{32})/i);
+        if (idMatch) {
+          ids.streamId = idMatch[1];
+        }
+        break;
+      }
+    }
+  }
+
+  // Look up sink ID
+  const sinksOutput = runQuiet('npx wrangler pipelines sinks list');
+  if (sinksOutput) {
+    const lines = sinksOutput.split('\n');
+    for (const line of lines) {
+      if (line.includes(config.sinkName)) {
+        const idMatch = line.match(/([a-f0-9]{32})/i);
+        if (idMatch) {
+          ids.sinkId = idMatch[1];
+        }
+        break;
+      }
+    }
+  }
+
+  // Look up pipeline ID
+  const pipelinesOutput = runQuiet('npx wrangler pipelines list');
+  if (pipelinesOutput) {
+    const lines = pipelinesOutput.split('\n');
+    for (const line of lines) {
+      if (line.includes(config.pipelineName)) {
+        const idMatch = line.match(/([a-f0-9]{32})/i);
+        if (idMatch) {
+          ids.pipelineId = idMatch[1];
+        }
+        break;
+      }
+    }
+  }
+
+  return ids;
+}
+
 function run(command: string, description: string): boolean {
   log(`\n> ${description}`, 'cyan');
-  log(`  $ ${command}`, 'yellow');
+  log(`  ${colors.dim}$ ${command}${colors.reset}`);
 
   try {
     const output = execSync(command, {
@@ -62,7 +213,7 @@ function run(command: string, description: string): boolean {
     const stderr = err.stderr || err.message || 'Unknown error';
 
     // Check if it's a "not found" error (already deleted)
-    if (stderr.includes('not found') || stderr.includes('does not exist')) {
+    if (stderr.includes('not found') || stderr.includes('does not exist') || stderr.includes('could not be found')) {
       log(`  ⚠ Not found (skipping)`, 'yellow');
       return true;
     }
@@ -73,7 +224,7 @@ function run(command: string, description: string): boolean {
 }
 
 async function confirm(message: string): Promise<boolean> {
-  if (force) return true;
+  if (confirmed) return true;
 
   const rl = readline.createInterface({
     input: process.stdin,
@@ -88,70 +239,242 @@ async function confirm(message: string): Promise<boolean> {
   });
 }
 
+/**
+ * List all objects in an R2 bucket
+ */
+function listBucketObjects(bucketName: string): string[] {
+  const output = runQuiet(`npx wrangler r2 object list ${bucketName}`);
+  if (!output) return [];
+
+  const objects: string[] = [];
+  // Parse the output - each line after header contains object keys
+  const lines = output.split('\n');
+  for (const line of lines) {
+    const trimmed = line.trim();
+    // Skip empty lines and header lines
+    if (!trimmed || trimmed.startsWith('key') || trimmed.startsWith('─') || trimmed.startsWith('size')) {
+      continue;
+    }
+    // First column is the key
+    const parts = trimmed.split(/\s+/);
+    if (parts[0] && !parts[0].includes('─')) {
+      objects.push(parts[0]);
+    }
+  }
+  return objects;
+}
+
+/**
+ * Delete all objects from an R2 bucket
+ */
+function emptyBucket(bucketName: string): boolean {
+  log(`\n> Emptying R2 bucket: ${bucketName}`, 'cyan');
+
+  const objects = listBucketObjects(bucketName);
+  if (objects.length === 0) {
+    log(`  ✓ Bucket is already empty`, 'green');
+    return true;
+  }
+
+  log(`  Found ${objects.length} objects to delete`, 'yellow');
+
+  let deletedCount = 0;
+  let failedCount = 0;
+
+  for (const key of objects) {
+    const deleteOutput = runQuiet(`npx wrangler r2 object delete "${bucketName}/${key}"`);
+    if (deleteOutput !== null) {
+      deletedCount++;
+    } else {
+      failedCount++;
+      log(`  ⚠ Failed to delete: ${key}`, 'yellow');
+    }
+  }
+
+  if (failedCount === 0) {
+    log(`  ✓ Deleted ${deletedCount} objects`, 'green');
+    return true;
+  } else {
+    log(`  ⚠ Deleted ${deletedCount} objects, failed to delete ${failedCount}`, 'yellow');
+    return false;
+  }
+}
+
+/**
+ * Delete local wrangler config files
+ */
+function deleteLocalConfigs(): void {
+  log(`\n> Deleting local wrangler config files`, 'cyan');
+
+  for (const configPath of workerLocalConfigs) {
+    if (existsSync(configPath)) {
+      try {
+        unlinkSync(configPath);
+        log(`  ✓ Deleted: ${configPath.replace(join(__dirname, '..') + '/', '')}`, 'green');
+      } catch (error) {
+        log(`  ✗ Failed to delete: ${configPath}`, 'red');
+      }
+    } else {
+      log(`  ⚠ Not found: ${configPath.replace(join(__dirname, '..') + '/', '')}`, 'yellow');
+    }
+  }
+}
+
 async function main() {
   log('\n╔════════════════════════════════════════════════════════════╗', 'red');
   log('║           cdpflare Infrastructure Teardown                  ║', 'red');
   log('╚════════════════════════════════════════════════════════════╝', 'red');
 
-  log('\nThis will delete:', 'yellow');
-  log(`  Pipeline: ${config.pipelineName}`);
-  log(`  Sink:     ${config.sinkName}`);
-  log(`  Stream:   ${config.streamName}`);
+  log(`\n  Project name: ${projectName} (from .env)`, 'cyan');
+
+  log('\n┌────────────────────────────────────────────────────────────┐', 'yellow');
+  log('│                 Resources to be Deleted                    │', 'yellow');
+  log('└────────────────────────────────────────────────────────────┘', 'yellow');
+
+  log('\n  Cloudflare Resources:', 'yellow');
+  log(`    • Workers:    ${workerNames.join(', ')}`);
+  log(`    • Containers: ${containerNames.join(', ')}`);
+  log(`    • Pipeline:   ${config.pipelineName}`);
+  log(`    • Sink:       ${config.sinkName}`);
+  log(`    • Stream:     ${config.streamName}`);
   if (!keepBucket) {
-    log(`  Bucket:   ${config.bucketName} (and ALL data!)`, 'red');
+    log(`    • Bucket:     ${config.bucketName} ${colors.red}(and ALL data!)${colors.reset}`);
   } else {
-    log(`  Bucket:   ${config.bucketName} (KEEPING - data preserved)`, 'green');
+    log(`    • Bucket:     ${colors.green}(KEEPING - data preserved)${colors.reset}`);
   }
 
-  const confirmed = await confirm('\nAre you sure you want to proceed?');
-  if (!confirmed) {
+  log('\n  Local Files:', 'yellow');
+  for (const configPath of workerLocalConfigs) {
+    const relativePath = configPath.replace(join(__dirname, '..') + '/', '');
+    if (existsSync(configPath)) {
+      log(`    • ${relativePath}`);
+    } else {
+      log(`    • ${relativePath} (not found)`);
+    }
+  }
+
+  log('\n  Preserved:', 'green');
+  log(`    • .env (contains project name and API token)`);
+
+  const shouldProceed = await confirm('\nAre you sure you want to proceed?');
+  if (!shouldProceed) {
     log('\nTeardown cancelled.', 'yellow');
     process.exit(0);
   }
 
-  log('\nStarting teardown...', 'cyan');
+  log('\n╔════════════════════════════════════════════════════════════╗', 'cyan');
+  log('║                 Starting Teardown...                        ║', 'cyan');
+  log('╚════════════════════════════════════════════════════════════╝', 'cyan');
 
-  // Step 1: Delete pipeline
-  run(
-    `npx wrangler pipelines delete ${config.pipelineName} --force`,
-    'Deleting Pipeline'
-  );
+  // Look up resource IDs first
+  log('\n> Looking up resource IDs...', 'cyan');
+  const resourceIds = lookupResourceIds();
 
-  // Step 2: Delete sink
-  run(
-    `npx wrangler pipelines sink delete ${config.sinkName} --force`,
-    'Deleting Sink'
-  );
+  // Step 1: Delete workers
+  log('\n┌────────────────────────────────────────────────────────────┐', 'cyan');
+  log('│                  Deleting Workers                          │', 'cyan');
+  log('└────────────────────────────────────────────────────────────┘', 'cyan');
 
-  // Step 3: Delete stream
-  run(
-    `npx wrangler pipelines stream delete ${config.streamName} --force`,
-    'Deleting Stream'
-  );
+  for (const workerName of workerNames) {
+    run(`npx wrangler delete --name ${workerName} --force`, `Deleting worker: ${workerName}`);
+  }
 
-  // Step 4: Delete bucket (if not keeping)
-  if (!keepBucket) {
-    // First, empty the bucket
+  // Step 2: Delete containers
+  log('\n┌────────────────────────────────────────────────────────────┐', 'cyan');
+  log('│                 Deleting Containers                        │', 'cyan');
+  log('└────────────────────────────────────────────────────────────┘', 'cyan');
+
+  for (const containerName of containerNames) {
+    const containerId = resourceIds.containerIds.get(containerName);
+    if (containerId) {
+      run(`npx wrangler containers delete ${containerId}`, `Deleting container: ${containerName} (${containerId})`);
+    } else {
+      log(`\n> Deleting container: ${containerName}`, 'cyan');
+      log(`  ⚠ Not found (skipping)`, 'yellow');
+    }
+  }
+
+  // Step 3: Delete pipeline
+  log('\n┌────────────────────────────────────────────────────────────┐', 'cyan');
+  log('│                Deleting Pipeline Resources                 │', 'cyan');
+  log('└────────────────────────────────────────────────────────────┘', 'cyan');
+
+  if (resourceIds.pipelineId) {
     run(
-      `npx wrangler r2 object delete ${config.bucketName} --recursive`,
-      'Emptying R2 bucket'
+      `npx wrangler pipelines delete ${resourceIds.pipelineId} --force`,
+      `Deleting Pipeline: ${config.pipelineName} (${resourceIds.pipelineId})`
     );
+  } else {
+    log(`\n> Deleting Pipeline: ${config.pipelineName}`, 'cyan');
+    log(`  ⚠ Not found (skipping)`, 'yellow');
+  }
 
+  // Step 3: Delete sink
+  if (resourceIds.sinkId) {
+    run(
+      `npx wrangler pipelines sinks delete ${resourceIds.sinkId} --force`,
+      `Deleting Sink: ${config.sinkName} (${resourceIds.sinkId})`
+    );
+  } else {
+    log(`\n> Deleting Sink: ${config.sinkName}`, 'cyan');
+    log(`  ⚠ Not found (skipping)`, 'yellow');
+  }
+
+  // Step 4: Delete stream
+  if (resourceIds.streamId) {
+    run(
+      `npx wrangler pipelines streams delete ${resourceIds.streamId} --force`,
+      `Deleting Stream: ${config.streamName} (${resourceIds.streamId})`
+    );
+  } else {
+    log(`\n> Deleting Stream: ${config.streamName}`, 'cyan');
+    log(`  ⚠ Not found (skipping)`, 'yellow');
+  }
+
+  // Step 5: Delete bucket (if not keeping)
+  if (!keepBucket) {
+    log('\n┌────────────────────────────────────────────────────────────┐', 'cyan');
+    log('│                  Deleting R2 Bucket                        │', 'cyan');
+    log('└────────────────────────────────────────────────────────────┘', 'cyan');
+
+    // First, empty the bucket (must delete all objects before deleting bucket)
+    emptyBucket(config.bucketName);
+
+    // Then delete the bucket
     run(
       `npx wrangler r2 bucket delete ${config.bucketName}`,
-      'Deleting R2 bucket'
+      `Deleting R2 bucket: ${config.bucketName}`
     );
   }
 
+  // Step 6: Delete local config files
+  log('\n┌────────────────────────────────────────────────────────────┐', 'cyan');
+  log('│               Deleting Local Config Files                  │', 'cyan');
+  log('└────────────────────────────────────────────────────────────┘', 'cyan');
+
+  deleteLocalConfigs();
+
+  // Complete!
   log('\n╔════════════════════════════════════════════════════════════╗', 'green');
-  log('║           Teardown Complete!                                ║', 'green');
+  log('║              Teardown Complete!                             ║', 'green');
   log('╚════════════════════════════════════════════════════════════╝', 'green');
 
-  if (keepBucket) {
-    log(`\nNote: R2 bucket "${config.bucketName}" was preserved.`, 'yellow');
-    log('To delete it manually:', 'yellow');
-    log(`  npx wrangler r2 bucket delete ${config.bucketName}`);
+  log('\n  Summary:', 'cyan');
+  log('    ✓ Deleted Cloudflare workers');
+  log('    ✓ Deleted Cloudflare containers');
+  log('    ✓ Deleted pipeline, sink, and stream');
+  if (!keepBucket) {
+    log('    ✓ Emptied and deleted R2 bucket');
+  } else {
+    log(`    ⚠ R2 bucket "${config.bucketName}" was preserved`, 'yellow');
+    log('      To delete it manually:', 'yellow');
+    log(`        npx wrangler r2 bucket delete ${config.bucketName}`);
   }
+  log('    ✓ Deleted wrangler.local.jsonc files');
+  log('    ✓ Preserved .env file');
+
+  log('\n  To recreate the infrastructure, run:', 'cyan');
+  log('    pnpm launch\n');
 }
 
 main().catch((error) => {

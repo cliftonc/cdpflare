@@ -39,10 +39,17 @@
   // - INGEST_API_URL: URL to the event ingest worker
   "vars": {},
 
-  // Service Bindings for worker-to-worker communication
-  // Uncomment and configure with your worker names:
-  // "services": [
-  //   { "binding": "DUCKDB_API", "service": "cdpflare-duckdb-api" },
-  //   { "binding": "INGEST_API", "service": "cdpflare-event-ingest" }
-  // ]
+  // Service Bindings for worker-to-worker communication (preferred over URLs)
+  "services": [
+    {
+      "binding": "DUCKDB_API",
+      "service": "cdpflare-duckdb-api",
+      "remote": true
+    },
+    {
+      "binding": "INGEST_API",
+      "service": "cdpflare-event-ingest",
+      "remote": true
+    }
+  ]
 }

@@ -141,6 +141,41 @@ function runCommand(command: string, _description?: string): boolean {
   }
 }
 
+/**
+ * Run a command and return the output (for capturing deploy URLs)
+ */
+function runCommandWithOutput(command: string): { success: boolean; output: string } {
+  log(`  ${colors.dim}$ ${command}${colors.reset}`);
+  try {
+    const output = execSync(command, {
+      encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+    return { success: true, output };
+  } catch (error) {
+    const err = error as { stderr?: string; stdout?: string; message?: string };
+    const stderr = err.stderr || err.message || 'Unknown error';
+    log(`  ✗ Failed: ${stderr}`, 'red');
+    return { success: false, output: err.stdout || '' };
+  }
+}
+
+/**
+ * Extract worker URL from wrangler deploy output
+ */
+function extractWorkerUrl(output: string): string | null {
+  // Look for pattern like "https://worker-name.subdomain.workers.dev"
+  const match = output.match(/https:\/\/[a-z0-9-]+\.[a-z0-9-]+\.workers\.dev/i);
+  return match ? match[0] : null;
+}
+
+// Store deployed worker URLs
+const deployedUrls: {
+  ingest?: string;
+  duckdb?: string;
+  query?: string;
+} = {};
+
 function getSchemaPath(): string {
   const schemaPath = join(__dirname, '..', 'templates', 'schema.events.json');
   if (!existsSync(schemaPath)) {
@@ -649,6 +684,7 @@ async function main() {
         `--bucket ${config.bucketName} ` +
         `--namespace analytics ` +
         `--table events ` +
+        `--roll-interval 60 ` +
         `--catalog-token "${apiToken}"`;
       if (!runCommand(sinkCmd, 'Create sink')) {
         log('\nFailed to create sink. Aborting.', 'red');
@@ -708,99 +744,51 @@ async function main() {
   }
   log(`    SQL:  INSERT INTO ${config.sinkName} SELECT * FROM ${config.streamName}`, 'dim');
 
-  // Create event-ingest local config with pipeline binding
+  // Create and deploy event-ingest worker
   if (finalResources.stream.id) {
     log('\n┌────────────────────────────────────────────────────────────┐', 'cyan');
     log('│            Event Ingest Worker Configuration               │', 'cyan');
     log('└────────────────────────────────────────────────────────────┘', 'cyan');
 
+    log('\n  1. Creating local config...', 'cyan');
     createEventIngestLocalConfig(finalResources.stream.id);
+
+    log('\n  2. Deploying Event Ingest worker...', 'cyan');
+    const ingestConfigPath = join(__dirname, '..', 'workers', 'event-ingest', 'wrangler.local.jsonc');
+    const ingestResult = runCommandWithOutput(`npx wrangler deploy --config "${ingestConfigPath}"`);
+    if (!ingestResult.success) {
+      log('    ⚠ Deploy failed - you can retry with: pnpm deploy:ingest', 'yellow');
+    } else {
+      deployedUrls.ingest = extractWorkerUrl(ingestResult.output) || undefined;
+      log('    ✓ Event Ingest deployed', 'green');
+      if (deployedUrls.ingest) {
+        log(`    ✓ URL: ${deployedUrls.ingest}`, 'green');
+      }
+    }
+
+    log('\n┌────────────────────────────────────────────────────────────┐', 'green');
+    log('│            Event Ingest Configuration Complete!            │', 'green');
+    log('└────────────────────────────────────────────────────────────┘', 'green');
   } else {
     log('\n  ⚠ Could not fetch Stream ID automatically.', 'yellow');
     log('  Run: npx wrangler pipelines streams list', 'yellow');
     log('  Then manually create workers/event-ingest/wrangler.local.jsonc', 'yellow');
   }
 
-  log('\n┌────────────────────────────────────────────────────────────┐', 'cyan');
-  log('│                      Next Steps                            │', 'cyan');
-  log('└────────────────────────────────────────────────────────────┘', 'cyan');
-  log('\n  1. Deploy: pnpm deploy:ingest');
-  log('  2. Test:');
-  log(`     curl -X POST https://cdpflare-event-ingest.YOUR-SUBDOMAIN.workers.dev/v1/track \\`);
-  log(`       -H "Content-Type: application/json" \\`);
-  log(`       -d '{"userId":"test","event":"Test Event"}'`);
-
-  // Query API configuration
-  log('\n┌────────────────────────────────────────────────────────────┐', 'cyan');
-  log('│              Query API Configuration (Optional)            │', 'cyan');
-  log('└────────────────────────────────────────────────────────────┘', 'cyan');
-
   if (!authInfo.accountId) {
     log('\n  ⚠ Could not detect Account ID automatically.', 'yellow');
-    log('  To configure Query API manually, see README.md\n', 'yellow');
+    log('  Cannot proceed with remaining worker deployments. See README.md\n', 'yellow');
     return;
   }
 
-  log('\n  The Query API lets you query your analytics data via HTTP.');
-  log('  Would you like to configure it now?\n');
-
-  const setupQuery = await prompt('  Configure Query API? (y/N): ');
-
-  if (setupQuery.toLowerCase() !== 'y') {
-    log('\n  Skipped Query API setup.', 'yellow');
-    // Continue to DuckDB API configuration
-  } else {
-
-  log('\n  Configuring Query API...', 'cyan');
-
-  // Step 1: Create local config with bucket name (R2 SQL uses bucket name as warehouse)
-  log('\n  1. Creating local config...', 'cyan');
-  createQueryApiLocalConfig(config.bucketName);
-
-  // Step 2: Deploy the worker
-  log('\n  2. Deploying Query API worker...', 'cyan');
-  const queryConfigPath = join(__dirname, '..', 'workers', 'query-api', 'wrangler.local.jsonc');
-  if (!runCommand(`npx wrangler deploy --config "${queryConfigPath}"`, 'Deploy query-api')) {
-    log('    ⚠ Deploy failed - you can retry with: pnpm deploy:query', 'yellow');
-  } else {
-    log('    ✓ Query API deployed', 'green');
-
-    // Step 3: Set secrets (only after successful deploy)
-    log('\n  3. Setting secrets...', 'cyan');
-    setSecret('CF_ACCOUNT_ID', authInfo.accountId!, queryConfigPath);
-    if (apiToken) {
-      setSecret('CF_API_TOKEN', apiToken, queryConfigPath);
-    } else {
-      log('    ⚠ No API token available - set manually:', 'yellow');
-      log('      npx wrangler secret put CF_API_TOKEN --config workers/query-api/wrangler.local.jsonc', 'yellow');
-    }
-  }
-
-  log('\n┌────────────────────────────────────────────────────────────┐', 'green');
-  log('│              Query API Configuration Complete!             │', 'green');
-  log('└────────────────────────────────────────────────────────────┘', 'green');
-
-  log('\n  Test with:');
-  log('    curl https://cdpflare-query-api.YOUR-SUBDOMAIN.workers.dev/health');
-  } // End of Query API configuration
-
-  // DuckDB API configuration (optional)
+  // DuckDB API configuration (required - deployed first as Query API depends on it)
   log('\n┌────────────────────────────────────────────────────────────┐', 'cyan');
-  log('│           DuckDB API Configuration (Optional)              │', 'cyan');
+  log('│              DuckDB API Configuration                      │', 'cyan');
   log('└────────────────────────────────────────────────────────────┘', 'cyan');
 
   log('\n  The DuckDB API provides full SQL support (JOINs, aggregations,');
   log('  window functions) by running DuckDB on Cloudflare Containers.');
   log('\n  Note: Cloudflare Containers is currently in public beta.', 'dim');
-  log('\n  Would you like to configure it now?\n');
-
-  const setupDuckDb = await prompt('  Configure DuckDB API? (y/N): ');
-
-  if (setupDuckDb.toLowerCase() !== 'y') {
-    log('\n  Skipped DuckDB API setup. Run pnpm launch again to configure later.', 'yellow');
-    log('\n  See README.md for full documentation.\n');
-    return;
-  }
 
   log('\n  Configuring DuckDB API...', 'cyan');
 
@@ -852,10 +840,15 @@ async function main() {
   // Step 4: Deploy the worker
   log('\n  4. Deploying DuckDB API worker...', 'cyan');
   const duckdbConfigPath = join(__dirname, '..', 'workers', 'duckdb-api', 'wrangler.local.jsonc');
-  if (!runCommand(`npx wrangler deploy --config "${duckdbConfigPath}" --containers-rollout=immediate`, 'Deploy duckdb-api')) {
+  const duckdbResult = runCommandWithOutput(`npx wrangler deploy --config "${duckdbConfigPath}" --containers-rollout=immediate`);
+  if (!duckdbResult.success) {
     log('    ⚠ Deploy failed - you can retry with: pnpm deploy:duckdb', 'yellow');
   } else {
+    deployedUrls.duckdb = extractWorkerUrl(duckdbResult.output) || undefined;
     log('    ✓ DuckDB API deployed', 'green');
+    if (deployedUrls.duckdb) {
+      log(`    ✓ URL: ${deployedUrls.duckdb}`, 'green');
+    }
 
     // Step 5: Set secrets (only after successful deploy)
     log('\n  5. Setting secrets...', 'cyan');
@@ -871,15 +864,74 @@ async function main() {
   log('│             DuckDB API Configuration Complete!             │', 'green');
   log('└────────────────────────────────────────────────────────────┘', 'green');
 
-  log('\n  Test with:');
-  log('    curl -X POST https://cdpflare-duckdb-api.YOUR-SUBDOMAIN.workers.dev/query \\');
-  log('      -H "Content-Type: application/json" \\');
-  log('      -d \'{"query": "SELECT * FROM r2_datalake.analytics.events LIMIT 5"}\'');
+  // Query API configuration (deployed after DuckDB since it may use DuckDB service binding)
+  log('\n┌────────────────────────────────────────────────────────────┐', 'cyan');
+  log('│              Query API Configuration                       │', 'cyan');
+  log('└────────────────────────────────────────────────────────────┘', 'cyan');
 
-  log('\n  Advantages over Query API (R2 SQL):');
-  log('    • Full DuckDB SQL (JOINs, aggregations, window functions)');
-  log('    • Complex analytics queries');
-  log('    • Streaming support for large datasets');
+  log('\n  The Query API provides a web UI and HTTP endpoints for querying data.');
+  log('\n  Configuring Query API...', 'cyan');
+
+  // Step 1: Create local config with bucket name (R2 SQL uses bucket name as warehouse)
+  log('\n  1. Creating local config...', 'cyan');
+  createQueryApiLocalConfig(config.bucketName);
+
+  // Step 2: Deploy the worker
+  log('\n  2. Deploying Query API worker...', 'cyan');
+  const queryConfigPath = join(__dirname, '..', 'workers', 'query-api', 'wrangler.local.jsonc');
+  const queryResult = runCommandWithOutput(`npx wrangler deploy --config "${queryConfigPath}"`);
+  if (!queryResult.success) {
+    log('    ⚠ Deploy failed - you can retry with: pnpm deploy:query', 'yellow');
+  } else {
+    deployedUrls.query = extractWorkerUrl(queryResult.output) || undefined;
+    log('    ✓ Query API deployed', 'green');
+    if (deployedUrls.query) {
+      log(`    ✓ URL: ${deployedUrls.query}`, 'green');
+    }
+
+    // Step 3: Set secrets (only after successful deploy)
+    log('\n  3. Setting secrets...', 'cyan');
+    setSecret('CF_ACCOUNT_ID', authInfo.accountId!, queryConfigPath);
+    if (apiToken) {
+      setSecret('CF_API_TOKEN', apiToken, queryConfigPath);
+    } else {
+      log('    ⚠ No API token available - set manually:', 'yellow');
+      log('      npx wrangler secret put CF_API_TOKEN --config workers/query-api/wrangler.local.jsonc', 'yellow');
+    }
+  }
+
+  log('\n┌────────────────────────────────────────────────────────────┐', 'green');
+  log('│              Query API Configuration Complete!             │', 'green');
+  log('└────────────────────────────────────────────────────────────┘', 'green');
+
+  // Final summary
+  log('\n╔════════════════════════════════════════════════════════════╗', 'green');
+  log('║           All Workers Deployed Successfully!               ║', 'green');
+  log('╚════════════════════════════════════════════════════════════╝', 'green');
+
+  log('\n  Deployed workers:');
+  log(`    • Event Ingest: ${deployedUrls.ingest || '(deploy failed)'}`);
+  log(`    • DuckDB API:   ${deployedUrls.duckdb || '(deploy failed)'}`);
+  log(`    • Query API:    ${deployedUrls.query || '(deploy failed)'}`);
+
+  if (deployedUrls.ingest) {
+    log('\n  Test event ingestion:');
+    log(`    curl -X POST ${deployedUrls.ingest}/v1/track \\`);
+    log(`      -H "Content-Type: application/json" \\`);
+    log(`      -d '{"userId":"test","event":"Test Event"}'`);
+  }
+
+  if (deployedUrls.duckdb) {
+    log('\n  Query data (via DuckDB):');
+    log(`    curl -X POST ${deployedUrls.duckdb}/query \\`);
+    log('      -H "Content-Type: application/json" \\');
+    log('      -d \'{"query": "SELECT * FROM r2_datalake.analytics.events LIMIT 5"}\'');
+  }
+
+  if (deployedUrls.query) {
+    log('\n  Open Query UI:');
+    log(`    ${deployedUrls.query}`);
+  }
 
   log('\n  See README.md for full documentation.\n');
 }
