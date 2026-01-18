@@ -140,8 +140,8 @@ export const defaultDashboardConfig: DashboardConfig = {
           query: {
             chartType: 'activityGrid',
             chartConfig: {
-              timeDimension: 'Events.timestamp',
-              measure: 'Events.count',
+              dateField: ['Events.timestamp'],
+              valueField: ['Events.count'],
             },
             displayConfig: {
               showLegend: false,
