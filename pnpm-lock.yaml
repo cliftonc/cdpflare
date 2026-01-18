@@ -29,6 +29,9 @@ importers:
       '@hono/node-server':
         specifier: ^1.19.5
         version: 1.19.9(hono@4.11.4)
+      '@icelight/sql-guard':
+        specifier: workspace:*
+        version: link:../packages/sql-guard
       hono:
         specifier: ^4.6.0
         version: 4.11.4
@@ -82,6 +85,9 @@ importers:
       '@icelight/duckdb-http-adapter':
         specifier: workspace:*
         version: link:../duckdb-http-adapter
+      '@icelight/sql-guard':
+        specifier: workspace:*
+        version: link:../sql-guard
       '@leonardovida-md/drizzle-neo-duckdb':
         specifier: ^1.2.2
         version: 1.2.2(drizzle-orm@0.44.7(@cloudflare/workers-types@4.20260117.0))
@@ -98,6 +104,16 @@ importers:
       '@cloudflare/workers-types':
         specifier: ^4.20240117.0
         version: 4.20260117.0
+      typescript:
+        specifier: ^5.3.3
+        version: 5.9.3
+
+  packages/sql-guard:
+    dependencies:
+      sql-query-identifier:
+        specifier: ^2.7.0
+        version: 2.9.0
+    devDependencies:
       typescript:
         specifier: ^5.3.3
         version: 5.9.3
@@ -1274,6 +1290,10 @@ packages:
     resolution: {integrity: sha512-Ou9I5Ft9WNcCbXrU9cMgPBcCK8LiwLqcbywW3t4oDV37n1pzpuNLsYiAV8eODnjbtQlSDwZ2cUEeQz4E54Hltg==}
     engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
 
+  sql-query-identifier@2.9.0:
+    resolution: {integrity: sha512-hbcvg5UDtV2ZG0UU/BXS72J0wIb0BQPu9o+u6asvVfvbRJRB2gD17Jie4ntXgRoH8+fulTX6UTkh0D9gh4kEmA==}
+    engines: {node: '>= 10.13'}
+
   supports-color@10.2.2:
     resolution: {integrity: sha512-SS+jx45GF1QjgEXQx4NJZV9ImqmO2NPz5FNsIHrsDjh2YsHnawpan7SNQ1o8NuhrbHZy9AZhIoCUiCeaW/C80g==}
     engines: {node: '>=18'}
@@ -2201,6 +2221,8 @@ snapshots:
       '@img/sharp-win32-arm64': 0.34.5
       '@img/sharp-win32-ia32': 0.34.5
       '@img/sharp-win32-x64': 0.34.5
+
+  sql-query-identifier@2.9.0: {}
 
   supports-color@10.2.2: {}
 

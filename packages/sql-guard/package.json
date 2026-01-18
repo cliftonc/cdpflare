@@ -1,7 +1,7 @@
 {
-  "name": "@icelight/query",
+  "name": "@icelight/sql-guard",
   "version": "0.1.0",
-  "description": "Query library for icelight - R2 SQL API proxy",
+  "description": "SQL validation and security for icelight query APIs",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -18,16 +18,9 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@icelight/core": "workspace:*",
-    "@icelight/sql-guard": "workspace:*",
-    "@icelight/duckdb-http-adapter": "workspace:*",
-    "@leonardovida-md/drizzle-neo-duckdb": "^1.2.2",
-    "drizzle-cube": "^0.3.10",
-    "drizzle-orm": "^0.44.0",
-    "hono": "^4.6.0"
+    "sql-query-identifier": "^2.7.0"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20240117.0",
     "typescript": "^5.3.3"
   }
 }

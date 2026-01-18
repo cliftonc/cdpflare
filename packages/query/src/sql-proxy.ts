@@ -3,6 +3,8 @@
  * Proxies SQL queries to Cloudflare's R2 SQL API
  */
 
+import { validateNamespace, validateIdentifier } from '@icelight/sql-guard';
+
 export interface R2SqlConfig {
   accountId: string;
   apiToken: string;
@@ -106,7 +108,11 @@ export async function listTables(
   namespace: string,
   config: R2SqlConfig
 ): Promise<R2SqlResult> {
-  const sql = `SHOW TABLES IN ${namespace}`;
+  const validation = validateNamespace(namespace);
+  if (!validation.valid) {
+    return { success: false, error: `Invalid namespace: ${validation.error}` };
+  }
+  const sql = `SHOW TABLES IN ${validation.sanitized}`;
   return executeQuery(sql, config);
 }
 
@@ -118,6 +124,14 @@ export async function describeTable(
   tableName: string,
   config: R2SqlConfig
 ): Promise<R2SqlResult> {
-  const sql = `DESCRIBE ${namespace}.${tableName}`;
+  const nsValidation = validateNamespace(namespace);
+  if (!nsValidation.valid) {
+    return { success: false, error: `Invalid namespace: ${nsValidation.error}` };
+  }
+  const tableValidation = validateIdentifier(tableName);
+  if (!tableValidation.valid) {
+    return { success: false, error: `Invalid table name: ${tableValidation.error}` };
+  }
+  const sql = `DESCRIBE ${nsValidation.sanitized}.${tableValidation.sanitized}`;
   return executeQuery(sql, config);
 }

@@ -12,6 +12,7 @@ import { sql } from 'drizzle-orm';
 import { drizzle } from '@leonardovida-md/drizzle-neo-duckdb';
 import { executeQuery, listTables, describeTable, type R2SqlConfig } from './sql-proxy.js';
 import { formatResult, type OutputFormat } from './formatter.js';
+import { validateSql } from '@icelight/sql-guard';
 import { HttpDuckDBConnection } from '@icelight/duckdb-http-adapter';
 import { events } from './schema/events.js';
 import { createCubeApp } from 'drizzle-cube/adapters/hono';
@@ -163,6 +164,15 @@ async function handleQuery(c: QueryContext) {
     );
   }
 
+  // Validate SQL for security
+  const validation = validateSql(body.sql, { selectOnly: true, maxQueryLength: 10000 });
+  if (!validation.valid) {
+    return c.json(
+      { success: false, error: `SQL validation failed: ${validation.errors.join('; ')}` } satisfies QueryResponse,
+      400
+    );
+  }
+
   const config = getR2Config(c.env);
   const result = await executeQuery(body.sql, config);
 
@@ -239,6 +249,15 @@ async function handleDuckDbQuery(c: QueryContext) {
   if (!body.sql || typeof body.sql !== 'string') {
     return c.json(
       { success: false, error: 'Missing or invalid sql field' } satisfies QueryResponse,
+      400
+    );
+  }
+
+  // Validate SQL for security (use higher limit for DuckDB complex queries)
+  const validation = validateSql(body.sql, { selectOnly: true, maxQueryLength: 50000 });
+  if (!validation.valid) {
+    return c.json(
+      { success: false, error: `SQL validation failed: ${validation.errors.join('; ')}` } satisfies QueryResponse,
       400
     );
   }

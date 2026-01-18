@@ -6,6 +6,7 @@
 import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { validateSql } from '@icelight/sql-guard';
 
 console.log('[STARTUP] Container starting...');
 
@@ -110,6 +111,12 @@ async function initDuckDB() {
         await connection.run(`USE r2_datalake.analytics;`);
         console.log('[DUCKDB] Default catalog+schema set to r2_datalake.analytics');
 
+        // Set read-only mode to prevent any write operations
+        // This provides a second layer of protection after SQL validation
+        console.log('[DUCKDB] Setting read-only mode...');
+        await connection.run(`SET access_mode = 'READ_ONLY';`);
+        console.log('[DUCKDB] Read-only mode enabled');
+
         // Mark catalog as attached so we re-run USE before each query
         r2CatalogAttached = true;
       } catch (catalogError) {
@@ -183,6 +190,15 @@ app.post('/query', async (c) => {
 
   try {
     const body = await c.req.json();
+
+    // Validate SQL for security (block write operations and dangerous functions)
+    const validation = validateSql(body.query, { selectOnly: true, maxQueryLength: 50000 });
+    if (!validation.valid) {
+      return c.json({
+        success: false,
+        error: `SQL validation failed: ${validation.errors.join('; ')}`
+      }, 400);
+    }
 
     // Ensure default catalog+schema is set before each query (in case context was reset)
     if (r2CatalogAttached) {
