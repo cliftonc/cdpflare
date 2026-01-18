@@ -56,13 +56,11 @@ export default function DuckDbPage() {
       const end = textarea.selectionEnd;
       const newSql = sql.slice(0, start) + text + sql.slice(end);
       setSql(newSql);
-      // Set cursor position after inserted text
       setTimeout(() => {
         textarea.focus();
         textarea.setSelectionRange(start + text.length, start + text.length);
       }, 0);
     } else {
-      // Fallback: append to end
       setSql((prev) => prev + text);
     }
   }, [sql]);
@@ -73,48 +71,50 @@ export default function DuckDbPage() {
 
   return (
     <div className="container mx-auto p-4 max-w-7xl">
-      <div className="flex gap-4">
-        {/* Info Panel */}
-        <div className="w-72 flex-shrink-0">
-          <div className="bg-base-100 rounded-lg shadow p-4 space-y-4">
-            <h2 className="font-semibold text-lg">DuckDB Query</h2>
-            <p className="text-sm text-base-content/70">
-              Query your R2 Iceberg tables using DuckDB with full SQL support including JOINs, aggregations, and window functions.
-            </p>
-            <div className="text-sm space-y-2">
-              <h3 className="font-medium">Available Catalogs:</h3>
-              <code className="block bg-base-200 p-2 rounded text-xs">
-                r2_datalake
-              </code>
-            </div>
-            <div className="text-sm space-y-2">
-              <h3 className="font-medium">Example Queries:</h3>
-              <div className="space-y-1">
-                <button
-                  className="btn btn-xs btn-ghost w-full justify-start text-left font-mono"
-                  onClick={() => handleInsertText('SELECT * FROM r2_datalake.analytics.events LIMIT 10')}
-                >
-                  Basic SELECT
-                </button>
-                <button
-                  className="btn btn-xs btn-ghost w-full justify-start text-left font-mono"
-                  onClick={() => handleInsertText('SELECT type, COUNT(*) as count FROM r2_datalake.analytics.events GROUP BY type')}
-                >
-                  GROUP BY
-                </button>
-                <button
-                  className="btn btn-xs btn-ghost w-full justify-start text-left font-mono"
-                  onClick={() => handleInsertText("SELECT * FROM r2_datalake.analytics.events WHERE type = 'track' ORDER BY timestamp DESC LIMIT 50")}
-                >
-                  Filter + Order
-                </button>
+      <div className="grid grid-cols-1 md:grid-cols-[25%_1fr] gap-4">
+        {/* Info Panel Sidebar - stacks on mobile, sidebar on desktop */}
+        <div>
+          <div className="sticky top-4">
+            <div className="bg-base-100 rounded-lg shadow p-4 space-y-4">
+              <h2 className="font-semibold text-lg">DuckDB Query</h2>
+              <p className="text-sm text-base-content/70">
+                Query your R2 Iceberg tables using DuckDB with full SQL support including JOINs, aggregations, and window functions.
+              </p>
+              <div className="text-sm space-y-2">
+                <h3 className="font-medium">Available Catalogs:</h3>
+                <code className="block bg-base-200 p-2 rounded text-xs">
+                  r2_datalake
+                </code>
+              </div>
+              <div className="text-sm space-y-2">
+                <h3 className="font-medium">Example Queries:</h3>
+                <div className="space-y-1">
+                  <button
+                    className="btn btn-xs btn-ghost w-full justify-start text-left font-mono"
+                    onClick={() => handleInsertText('SELECT * FROM r2_datalake.analytics.events LIMIT 10')}
+                  >
+                    Basic SELECT
+                  </button>
+                  <button
+                    className="btn btn-xs btn-ghost w-full justify-start text-left font-mono"
+                    onClick={() => handleInsertText('SELECT type, COUNT(*) as count FROM r2_datalake.analytics.events GROUP BY type')}
+                  >
+                    GROUP BY
+                  </button>
+                  <button
+                    className="btn btn-xs btn-ghost w-full justify-start text-left font-mono"
+                    onClick={() => handleInsertText("SELECT * FROM r2_datalake.analytics.events WHERE type = 'track' ORDER BY timestamp DESC LIMIT 50")}
+                  >
+                    Filter + Order
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
         {/* Query Area */}
-        <div className="flex-1 space-y-4 min-w-0">
+        <div className="space-y-4">
           <QueryEditor
             sql={sql}
             onSqlChange={setSql}

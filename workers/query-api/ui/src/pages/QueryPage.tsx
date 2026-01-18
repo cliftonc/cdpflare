@@ -75,13 +75,11 @@ export default function QueryPage() {
       const end = textarea.selectionEnd;
       const newSql = sql.slice(0, start) + text + sql.slice(end);
       setSql(newSql);
-      // Set cursor position after inserted text
       setTimeout(() => {
         textarea.focus();
         textarea.setSelectionRange(start + text.length, start + text.length);
       }, 0);
     } else {
-      // Fallback: append to end
       setSql((prev) => prev + text);
     }
   }, [sql]);
@@ -92,14 +90,16 @@ export default function QueryPage() {
 
   return (
     <div className="container mx-auto p-4 max-w-7xl">
-      <div className="flex gap-4">
-        {/* Schema Explorer Sidebar */}
-        <div className="w-72 flex-shrink-0">
-          <SchemaExplorer onInsert={handleInsertText} />
+      <div className="grid grid-cols-1 md:grid-cols-[25%_1fr] gap-4">
+        {/* Schema Explorer Sidebar - stacks on mobile, sidebar on desktop */}
+        <div>
+          <div className="sticky top-4">
+            <SchemaExplorer onInsert={handleInsertText} />
+          </div>
         </div>
 
         {/* Query Area */}
-        <div className="flex-1 space-y-4 min-w-0">
+        <div className="space-y-4">
           <QueryEditor
             sql={sql}
             onSqlChange={setSql}

@@ -29,6 +29,8 @@ interface Config {
   streamName: string;
   sinkName: string;
   pipelineName: string;
+  kvCacheName: string;
+  d1DatabaseName: string;
 }
 let config: Config;
 
@@ -213,7 +215,13 @@ function parseJsonc(content: string): unknown {
 /**
  * Create wrangler.local.jsonc for query-api worker
  */
-function createQueryApiLocalConfig(warehouseName: string): boolean {
+function createQueryApiLocalConfig(
+  warehouseName: string,
+  kvCacheId?: string | null,
+  kvCachePreviewId?: string | null,
+  d1DatabaseId?: string | null,
+  d1DatabaseName?: string | null
+): boolean {
   const basePath = join(__dirname, '..', 'workers', 'query-api', 'wrangler.jsonc');
   const localPath = join(__dirname, '..', 'workers', 'query-api', 'wrangler.local.jsonc');
 
@@ -230,6 +238,30 @@ function createQueryApiLocalConfig(warehouseName: string): boolean {
     const vars = (config.vars as Record<string, unknown>) || {};
     vars.WAREHOUSE_NAME = warehouseName;
     config.vars = vars;
+
+    // Add KV namespace binding if IDs are provided
+    if (kvCacheId) {
+      config.kv_namespaces = [
+        {
+          binding: 'CACHE',
+          id: kvCacheId,
+          ...(kvCachePreviewId ? { preview_id: kvCachePreviewId } : {}),
+        },
+      ];
+      log(`  ✓ Added KV cache binding`, 'green');
+    }
+
+    // Add D1 database binding if ID is provided
+    if (d1DatabaseId && d1DatabaseName) {
+      config.d1_databases = [
+        {
+          binding: 'DB',
+          database_name: d1DatabaseName,
+          database_id: d1DatabaseId,
+        },
+      ];
+      log(`  ✓ Added D1 database binding`, 'green');
+    }
 
     // Write local config with comment header
     const localContent = `// Local wrangler config - DO NOT COMMIT
@@ -381,6 +413,47 @@ function checkSecrets(configPath: string): SecretStatus {
   return status;
 }
 
+/**
+ * Check if a worker is deployed
+ */
+function checkWorkerDeployed(workerName: string): { deployed: boolean; url: string | null } {
+  try {
+    const output = execSync(`npx wrangler deployments list --name "${workerName}"`, {
+      encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+    // If we get output with "Created:", the worker is deployed
+    if (output.includes('Created:')) {
+      // Try to get the worker URL
+      const url = `https://${workerName}.${getSubdomain()}.workers.dev`;
+      return { deployed: true, url };
+    }
+    return { deployed: false, url: null };
+  } catch {
+    return { deployed: false, url: null };
+  }
+}
+
+/**
+ * Get the workers.dev subdomain for the account
+ */
+function getSubdomain(): string {
+  try {
+    const output = execSync('npx wrangler whoami', {
+      encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+    // Look for subdomain in output (format varies)
+    const subdomainMatch = output.match(/workers\.dev subdomain[:\s]+([a-z0-9-]+)/i);
+    if (subdomainMatch) {
+      return subdomainMatch[1];
+    }
+  } catch {
+    // Ignore
+  }
+  return '<subdomain>';
+}
+
 // Resource checking functions
 interface ExistingResources {
   bucket: boolean;
@@ -388,6 +461,8 @@ interface ExistingResources {
   stream: { exists: boolean; id: string | null };
   sink: { exists: boolean; id: string | null };
   pipeline: { exists: boolean; id: string | null };
+  kvCache: { exists: boolean; id: string | null; previewId: string | null };
+  d1Database: { exists: boolean; id: string | null };
 }
 
 function checkExistingResources(): ExistingResources {
@@ -397,6 +472,8 @@ function checkExistingResources(): ExistingResources {
     stream: { exists: false, id: null },
     sink: { exists: false, id: null },
     pipeline: { exists: false, id: null },
+    kvCache: { exists: false, id: null, previewId: null },
+    d1Database: { exists: false, id: null },
   };
 
   // Check R2 bucket
@@ -453,6 +530,57 @@ function checkExistingResources(): ExistingResources {
         const idMatch = line.match(/([a-f0-9]{32})/i);
         if (idMatch) {
           resources.pipeline.id = idMatch[1];
+        }
+        break;
+      }
+    }
+  }
+
+  // Check KV namespaces (output is JSON array)
+  const kvOutput = runQuiet('npx wrangler kv namespace list');
+  if (kvOutput) {
+    try {
+      const namespaces = JSON.parse(kvOutput) as Array<{ id: string; title: string }>;
+      for (const ns of namespaces) {
+        // Check for exact match or preview suffix
+        if (ns.title === config.kvCacheName) {
+          resources.kvCache.exists = true;
+          resources.kvCache.id = ns.id;
+        } else if (ns.title === `${config.kvCacheName}_preview`) {
+          resources.kvCache.previewId = ns.id;
+        }
+      }
+    } catch {
+      // Fallback to line-based parsing if JSON fails
+      const lines = kvOutput.split('\n');
+      for (const line of lines) {
+        if (line.includes(config.kvCacheName)) {
+          const isPreview = line.toLowerCase().includes('preview');
+          const idMatch = line.match(/([a-f0-9]{32})/i);
+          if (idMatch) {
+            if (isPreview) {
+              resources.kvCache.previewId = idMatch[1];
+            } else {
+              resources.kvCache.exists = true;
+              resources.kvCache.id = idMatch[1];
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Check D1 databases
+  const d1Output = runQuiet('npx wrangler d1 list');
+  if (d1Output) {
+    const lines = d1Output.split('\n');
+    for (const line of lines) {
+      if (line.includes(config.d1DatabaseName)) {
+        resources.d1Database.exists = true;
+        // D1 database IDs are UUIDs
+        const idMatch = line.match(/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i);
+        if (idMatch) {
+          resources.d1Database.id = idMatch[1];
         }
         break;
       }
@@ -542,13 +670,17 @@ async function main() {
     streamName: `${underscoreName}_events_stream`,
     sinkName: `${underscoreName}_events_sink`,
     pipelineName: `${underscoreName}_events_pipeline`,
+    kvCacheName: `${projectName}-query-cache`,
+    d1DatabaseName: `${projectName}-dashboards`,
   };
 
   log(`\n  Using configuration:`, 'cyan');
-  log(`    Bucket:   ${config.bucketName}`, 'reset');
-  log(`    Stream:   ${config.streamName}`, 'reset');
-  log(`    Sink:     ${config.sinkName}`, 'reset');
-  log(`    Pipeline: ${config.pipelineName}`, 'reset');
+  log(`    Bucket:      ${config.bucketName}`, 'reset');
+  log(`    Stream:      ${config.streamName}`, 'reset');
+  log(`    Sink:        ${config.sinkName}`, 'reset');
+  log(`    Pipeline:    ${config.pipelineName}`, 'reset');
+  log(`    KV Cache:    ${config.kvCacheName}`, 'reset');
+  log(`    D1 Database: ${config.d1DatabaseName}`, 'reset');
 
   // Check authentication first
   const authInfo = checkWranglerAuth();
@@ -601,14 +733,36 @@ async function main() {
     log(`    ○ Not created`, 'yellow');
   }
 
+  log(`\n  KV Cache (${config.kvCacheName}):`, 'reset');
+  if (existing.kvCache.exists) {
+    log(`    ✓ Exists (ID: ${existing.kvCache.id})`, 'green');
+    if (existing.kvCache.previewId) {
+      log(`    ✓ Preview exists (ID: ${existing.kvCache.previewId})`, 'green');
+    } else {
+      log(`    ○ Preview not created`, 'yellow');
+    }
+  } else {
+    log(`    ○ Not created`, 'yellow');
+  }
+
+  log(`\n  D1 Database (${config.d1DatabaseName}):`, 'reset');
+  if (existing.d1Database.exists) {
+    log(`    ✓ Exists (ID: ${existing.d1Database.id})`, 'green');
+  } else {
+    log(`    ○ Not created`, 'yellow');
+  }
+
   // Determine what needs to be created
   const needsBucket = !existing.bucket;
   const needsCatalog = !existing.catalogEnabled;
   const needsStream = !existing.stream.exists;
   const needsSink = !existing.sink.exists;
   const needsPipeline = !existing.pipeline.exists;
+  const needsKvCache = !existing.kvCache.exists;
+  const needsKvCachePreview = !existing.kvCache.previewId;
+  const needsD1Database = !existing.d1Database.exists;
 
-  const allExist = !needsBucket && !needsCatalog && !needsStream && !needsSink && !needsPipeline;
+  const allExist = !needsBucket && !needsCatalog && !needsStream && !needsSink && !needsPipeline && !needsKvCache && !needsKvCachePreview && !needsD1Database;
 
   // If we need to create sink (or deploy workers), we need an API token
   if (needsSink || !apiToken) {
@@ -704,6 +858,56 @@ async function main() {
       }
       log(`    ✓ Created ${config.pipelineName}`, 'green');
     }
+
+    // Step 6: Create KV cache namespace if needed
+    if (needsKvCache) {
+      log('\n  Creating KV cache namespace...', 'cyan');
+      const kvResult = runCommandWithOutput(`npx wrangler kv namespace create "${config.kvCacheName}"`);
+      if (!kvResult.success) {
+        log('    ⚠ Failed to create KV namespace - caching will be disabled', 'yellow');
+      } else {
+        // Extract the namespace ID from the output
+        const idMatch = kvResult.output.match(/id\s*=\s*"([a-f0-9]{32})"/i);
+        if (idMatch) {
+          existing.kvCache.id = idMatch[1];
+          existing.kvCache.exists = true;
+        }
+        log(`    ✓ Created ${config.kvCacheName}`, 'green');
+      }
+    }
+
+    // Step 7: Create KV cache preview namespace if needed
+    if (needsKvCachePreview) {
+      log('\n  Creating KV cache preview namespace...', 'cyan');
+      const kvPreviewResult = runCommandWithOutput(`npx wrangler kv namespace create "${config.kvCacheName}" --preview`);
+      if (!kvPreviewResult.success) {
+        log('    ⚠ Failed to create KV preview namespace - local dev caching will be disabled', 'yellow');
+      } else {
+        // Extract the preview namespace ID from the output
+        const previewIdMatch = kvPreviewResult.output.match(/id\s*=\s*"([a-f0-9]{32})"/i);
+        if (previewIdMatch) {
+          existing.kvCache.previewId = previewIdMatch[1];
+        }
+        log(`    ✓ Created ${config.kvCacheName} (preview)`, 'green');
+      }
+    }
+
+    // Step 8: Create D1 database if needed
+    if (needsD1Database) {
+      log('\n  Creating D1 database...', 'cyan');
+      const d1Result = runCommandWithOutput(`npx wrangler d1 create "${config.d1DatabaseName}"`);
+      if (!d1Result.success) {
+        log('    ⚠ Failed to create D1 database - dashboard storage will be disabled', 'yellow');
+      } else {
+        // Extract the database ID from the output (UUID format)
+        const idMatch = d1Result.output.match(/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i);
+        if (idMatch) {
+          existing.d1Database.id = idMatch[1];
+          existing.d1Database.exists = true;
+        }
+        log(`    ✓ Created ${config.d1DatabaseName}`, 'green');
+      }
+    }
   }
 
   // Refresh resource info after any creations
@@ -753,16 +957,31 @@ async function main() {
     log('\n  1. Creating local config...', 'cyan');
     createEventIngestLocalConfig(finalResources.stream.id);
 
-    log('\n  2. Deploying Event Ingest worker...', 'cyan');
-    const ingestConfigPath = join(__dirname, '..', 'workers', 'event-ingest', 'wrangler.local.jsonc');
-    const ingestResult = runCommandWithOutput(`npx wrangler deploy --config "${ingestConfigPath}"`);
-    if (!ingestResult.success) {
-      log('    ⚠ Deploy failed - you can retry with: pnpm deploy:ingest', 'yellow');
-    } else {
-      deployedUrls.ingest = extractWorkerUrl(ingestResult.output) || undefined;
-      log('    ✓ Event Ingest deployed', 'green');
-      if (deployedUrls.ingest) {
-        log(`    ✓ URL: ${deployedUrls.ingest}`, 'green');
+    // Check if worker is already deployed
+    const ingestStatus = checkWorkerDeployed('icelight-event-ingest');
+    let shouldDeployIngest = true;
+
+    if (ingestStatus.deployed) {
+      log('\n  2. Event Ingest worker is already deployed.', 'green');
+      if (ingestStatus.url) {
+        deployedUrls.ingest = ingestStatus.url;
+      }
+      const redeployAnswer = await prompt('     Redeploy? (y/N): ');
+      shouldDeployIngest = redeployAnswer.toLowerCase() === 'y';
+    }
+
+    if (shouldDeployIngest) {
+      log(ingestStatus.deployed ? '\n  3. Redeploying Event Ingest worker...' : '\n  2. Deploying Event Ingest worker...', 'cyan');
+      const ingestConfigPath = join(__dirname, '..', 'workers', 'event-ingest', 'wrangler.local.jsonc');
+      const ingestResult = runCommandWithOutput(`npx wrangler deploy --config "${ingestConfigPath}"`);
+      if (!ingestResult.success) {
+        log('    ⚠ Deploy failed - you can retry with: pnpm deploy:ingest', 'yellow');
+      } else {
+        deployedUrls.ingest = extractWorkerUrl(ingestResult.output) || undefined;
+        log('    ✓ Event Ingest deployed', 'green');
+        if (deployedUrls.ingest) {
+          log(`    ✓ URL: ${deployedUrls.ingest}`, 'green');
+        }
       }
     }
 
@@ -824,39 +1043,58 @@ async function main() {
   log('\n  2. Creating local config...', 'cyan');
   createDuckDbApiLocalConfig(warehouseName || config.bucketName, catalogUri);
 
-  // Step 3: Download DuckDB extensions
-  log('\n  3. Downloading DuckDB extensions...', 'cyan');
-  const extensionsScriptPath = join(__dirname, 'download-extensions.sh');
-  if (existsSync(extensionsScriptPath)) {
-    if (!runCommand(`bash "${extensionsScriptPath}"`, 'Download extensions')) {
-      log('    ⚠ Extension download failed - container may not work correctly', 'yellow');
-    } else {
-      log('    ✓ DuckDB extensions downloaded', 'green');
+  // Check if DuckDB API worker is already deployed
+  const duckdbStatus = checkWorkerDeployed('icelight-duckdb-api');
+  let shouldDeployDuckdb = true;
+  let duckdbStepNum = 3;
+
+  if (duckdbStatus.deployed) {
+    log('\n  3. DuckDB API worker is already deployed.', 'green');
+    if (duckdbStatus.url) {
+      deployedUrls.duckdb = duckdbStatus.url;
     }
-  } else {
-    log('    ⚠ Extension download script not found at: ' + extensionsScriptPath, 'yellow');
+    const redeployAnswer = await prompt('     Redeploy? (y/N): ');
+    shouldDeployDuckdb = redeployAnswer.toLowerCase() === 'y';
+    duckdbStepNum = 4;
   }
 
-  // Step 4: Deploy the worker
-  log('\n  4. Deploying DuckDB API worker...', 'cyan');
-  const duckdbConfigPath = join(__dirname, '..', 'workers', 'duckdb-api', 'wrangler.local.jsonc');
-  const duckdbResult = runCommandWithOutput(`npx wrangler deploy --config "${duckdbConfigPath}" --containers-rollout=immediate`);
-  if (!duckdbResult.success) {
-    log('    ⚠ Deploy failed - you can retry with: pnpm deploy:duckdb', 'yellow');
-  } else {
-    deployedUrls.duckdb = extractWorkerUrl(duckdbResult.output) || undefined;
-    log('    ✓ DuckDB API deployed', 'green');
-    if (deployedUrls.duckdb) {
-      log(`    ✓ URL: ${deployedUrls.duckdb}`, 'green');
-    }
-
-    // Step 5: Set secrets (only after successful deploy)
-    log('\n  5. Setting secrets...', 'cyan');
-    if (apiToken) {
-      setSecret('R2_TOKEN', apiToken, duckdbConfigPath);
+  if (shouldDeployDuckdb) {
+    // Download DuckDB extensions
+    log(`\n  ${duckdbStepNum}. Downloading DuckDB extensions...`, 'cyan');
+    const extensionsScriptPath = join(__dirname, 'download-extensions.sh');
+    if (existsSync(extensionsScriptPath)) {
+      if (!runCommand(`bash "${extensionsScriptPath}"`, 'Download extensions')) {
+        log('    ⚠ Extension download failed - container may not work correctly', 'yellow');
+      } else {
+        log('    ✓ DuckDB extensions downloaded', 'green');
+      }
     } else {
-      log('    ⚠ No API token available - set manually:', 'yellow');
-      log('      npx wrangler secret put R2_TOKEN --config workers/duckdb-api/wrangler.local.jsonc', 'yellow');
+      log('    ⚠ Extension download script not found at: ' + extensionsScriptPath, 'yellow');
+    }
+    duckdbStepNum++;
+
+    // Deploy the worker
+    log(`\n  ${duckdbStepNum}. Deploying DuckDB API worker...`, 'cyan');
+    const duckdbConfigPath = join(__dirname, '..', 'workers', 'duckdb-api', 'wrangler.local.jsonc');
+    const duckdbResult = runCommandWithOutput(`npx wrangler deploy --config "${duckdbConfigPath}" --containers-rollout=immediate`);
+    if (!duckdbResult.success) {
+      log('    ⚠ Deploy failed - you can retry with: pnpm deploy:duckdb', 'yellow');
+    } else {
+      deployedUrls.duckdb = extractWorkerUrl(duckdbResult.output) || undefined;
+      log('    ✓ DuckDB API deployed', 'green');
+      if (deployedUrls.duckdb) {
+        log(`    ✓ URL: ${deployedUrls.duckdb}`, 'green');
+      }
+      duckdbStepNum++;
+
+      // Set secrets (only after successful deploy)
+      log(`\n  ${duckdbStepNum}. Setting secrets...`, 'cyan');
+      if (apiToken) {
+        setSecret('R2_TOKEN', apiToken, duckdbConfigPath);
+      } else {
+        log('    ⚠ No API token available - set manually:', 'yellow');
+        log('      npx wrangler secret put R2_TOKEN --config workers/duckdb-api/wrangler.local.jsonc', 'yellow');
+      }
     }
   }
 
@@ -872,31 +1110,80 @@ async function main() {
   log('\n  The Query API provides a web UI and HTTP endpoints for querying data.');
   log('\n  Configuring Query API...', 'cyan');
 
-  // Step 1: Create local config with bucket name (R2 SQL uses bucket name as warehouse)
+  // Step 1: Create local config with bucket name, KV cache, and D1 database
   log('\n  1. Creating local config...', 'cyan');
-  createQueryApiLocalConfig(config.bucketName);
+  createQueryApiLocalConfig(
+    config.bucketName,
+    finalResources.kvCache.id,
+    finalResources.kvCache.previewId,
+    finalResources.d1Database.id,
+    config.d1DatabaseName
+  );
 
-  // Step 2: Deploy the worker
-  log('\n  2. Deploying Query API worker...', 'cyan');
-  const queryConfigPath = join(__dirname, '..', 'workers', 'query-api', 'wrangler.local.jsonc');
-  const queryResult = runCommandWithOutput(`npx wrangler deploy --config "${queryConfigPath}"`);
-  if (!queryResult.success) {
-    log('    ⚠ Deploy failed - you can retry with: pnpm deploy:query', 'yellow');
-  } else {
-    deployedUrls.query = extractWorkerUrl(queryResult.output) || undefined;
-    log('    ✓ Query API deployed', 'green');
-    if (deployedUrls.query) {
-      log(`    ✓ URL: ${deployedUrls.query}`, 'green');
-    }
-
-    // Step 3: Set secrets (only after successful deploy)
-    log('\n  3. Setting secrets...', 'cyan');
-    setSecret('CF_ACCOUNT_ID', authInfo.accountId!, queryConfigPath);
-    if (apiToken) {
-      setSecret('CF_API_TOKEN', apiToken, queryConfigPath);
+  // Step 2: Run D1 migrations if database exists
+  if (finalResources.d1Database.id) {
+    log('\n  2. Running D1 migrations...', 'cyan');
+    const migrationsPath = join(__dirname, '..', 'workers', 'query-api', 'migrations');
+    if (existsSync(migrationsPath)) {
+      // Apply each migration file in order
+      const migrationFiles = ['0000_create_dashboards.sql', '0001_seed_default.sql'];
+      for (const migrationFile of migrationFiles) {
+        const migrationPath = join(migrationsPath, migrationFile);
+        if (existsSync(migrationPath)) {
+          const migrationResult = runCommandWithOutput(
+            `npx wrangler d1 execute "${config.d1DatabaseName}" --file="${migrationPath}" --remote`
+          );
+          if (!migrationResult.success) {
+            log(`    ⚠ Migration ${migrationFile} failed - dashboard storage may not work correctly`, 'yellow');
+          } else {
+            log(`    ✓ Applied ${migrationFile}`, 'green');
+          }
+        }
+      }
     } else {
-      log('    ⚠ No API token available - set manually:', 'yellow');
-      log('      npx wrangler secret put CF_API_TOKEN --config workers/query-api/wrangler.local.jsonc', 'yellow');
+      log('    ⚠ Migrations directory not found', 'yellow');
+    }
+  }
+
+  // Check if Query API worker is already deployed
+  const queryStatus = checkWorkerDeployed('icelight-query-api');
+  let shouldDeployQuery = true;
+  let queryStepNum = 3;
+
+  if (queryStatus.deployed) {
+    log('\n  3. Query API worker is already deployed.', 'green');
+    if (queryStatus.url) {
+      deployedUrls.query = queryStatus.url;
+    }
+    const redeployAnswer = await prompt('     Redeploy? (y/N): ');
+    shouldDeployQuery = redeployAnswer.toLowerCase() === 'y';
+    queryStepNum = 4;
+  }
+
+  if (shouldDeployQuery) {
+    // Deploy the worker
+    log(`\n  ${queryStepNum}. Deploying Query API worker...`, 'cyan');
+    const queryConfigPath = join(__dirname, '..', 'workers', 'query-api', 'wrangler.local.jsonc');
+    const queryResult = runCommandWithOutput(`npx wrangler deploy --config "${queryConfigPath}"`);
+    if (!queryResult.success) {
+      log('    ⚠ Deploy failed - you can retry with: pnpm deploy:query', 'yellow');
+    } else {
+      deployedUrls.query = extractWorkerUrl(queryResult.output) || undefined;
+      log('    ✓ Query API deployed', 'green');
+      if (deployedUrls.query) {
+        log(`    ✓ URL: ${deployedUrls.query}`, 'green');
+      }
+      queryStepNum++;
+
+      // Set secrets (only after successful deploy)
+      log(`\n  ${queryStepNum}. Setting secrets...`, 'cyan');
+      setSecret('CF_ACCOUNT_ID', authInfo.accountId!, queryConfigPath);
+      if (apiToken) {
+        setSecret('CF_API_TOKEN', apiToken, queryConfigPath);
+      } else {
+        log('    ⚠ No API token available - set manually:', 'yellow');
+        log('      npx wrangler secret put CF_API_TOKEN --config workers/query-api/wrangler.local.jsonc', 'yellow');
+      }
     }
   }
 

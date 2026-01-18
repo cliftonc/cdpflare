@@ -10,14 +10,19 @@
     "dev:ui": "cd ui && npm run dev",
     "build:ui": "cd ui && npm run build",
     "deploy": "pnpm build:ui && if [ -f wrangler.local.jsonc ]; then wrangler deploy -c wrangler.local.jsonc; else echo 'Error: wrangler.local.jsonc not found. Run pnpm launch first.' && exit 1; fi",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "wrangler d1 migrations apply icelight-dashboards --local -c wrangler.local.jsonc"
   },
   "dependencies": {
     "@icelight/query": "workspace:*",
+    "drizzle-cube": "^0.3.10",
+    "drizzle-orm": "^0.44.0",
     "hono": "^4.6.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240117.0",
+    "drizzle-kit": "^0.30.0",
     "typescript": "^5.3.3",
     "wrangler": "^4.59.2"
   }

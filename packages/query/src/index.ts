@@ -2,7 +2,7 @@
 export { createQueryApp } from './handler.js';
 
 // Types
-export type { QueryEnv, QueryRequest, QueryResponse, QueryAppOptions } from './handler.js';
+export type { QueryEnv, QueryRequest, QueryResponse, QueryAppOptions, CacheOptions, CacheProviderFactory } from './handler.js';
 
 // SQL proxy utilities
 export { executeQuery, listTables, describeTable } from './sql-proxy.js';

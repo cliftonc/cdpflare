@@ -17,7 +17,12 @@ import { HttpDuckDBConnection } from '@icelight/duckdb-http-adapter';
 import { events } from './schema/events.js';
 import { createCubeApp } from 'drizzle-cube/adapters/hono';
 import { allCubes } from './cubes/events.js';
-import type { Cube } from 'drizzle-cube/server';
+import type { Cube, CacheConfig, CacheProvider } from 'drizzle-cube/server';
+
+/**
+ * Factory function to create a cache provider from KV binding
+ */
+export type CacheProviderFactory = (kv: KVNamespace) => CacheProvider;
 
 export interface QueryEnv {
   CF_ACCOUNT_ID: string;
@@ -32,6 +37,10 @@ export interface QueryEnv {
   // Ingest API configuration (for proxying /v1/* routes)
   INGEST_API?: Fetcher; // Service Binding to ingest worker (preferred)
   INGEST_API_URL?: string; // URL to the event ingest worker (fallback)
+  // Cache configuration
+  CACHE?: KVNamespace; // KV binding for drizzle-cube query result caching
+  // D1 database for dashboard storage
+  DB?: D1Database; // D1 binding for dashboard configuration storage
 }
 
 export interface QueryRequest {
@@ -53,11 +62,27 @@ export interface QueryResponse {
 type QueryContext = Context<{ Bindings: QueryEnv }>;
 
 /**
+ * Cache options for drizzle-cube query results
+ */
+export interface CacheOptions {
+  /** Factory function to create a cache provider from KV binding */
+  providerFactory: CacheProviderFactory;
+  /** Default TTL in milliseconds (default: 3600000 = 60 minutes) */
+  defaultTtlMs?: number;
+  /** Key prefix for cache entries (default: 'drizzle-cube:') */
+  keyPrefix?: string;
+  /** Include security context in cache key (default: true) */
+  includeSecurityContext?: boolean;
+}
+
+/**
  * Options for creating the query app
  */
 export interface QueryAppOptions {
   /** Custom cube definitions (defaults to allCubes from events.ts) */
   cubes?: Cube[];
+  /** Cache options for drizzle-cube query results (requires CACHE KV binding in env) */
+  cache?: CacheOptions;
 }
 
 /**
@@ -129,7 +154,20 @@ export function createQueryApp(options: QueryAppOptions = {}) {
 
   // Mount cube API routes
   app.all('/cubejs-api/*', async (c) => {
-    return handleCubeRequest(c, cubes);
+    // Build cache config at runtime if KV binding is available
+    let cacheConfig: CacheConfig | undefined;
+    if (options.cache && c.env.CACHE) {
+      cacheConfig = {
+        provider: options.cache.providerFactory(c.env.CACHE),
+        defaultTtlMs: options.cache.defaultTtlMs ?? 3600000,
+        keyPrefix: options.cache.keyPrefix ?? 'drizzle-cube:',
+        includeSecurityContext: options.cache.includeSecurityContext ?? true,
+        onError: (error, operation) => {
+          console.error(`[Cache Error] ${operation}: ${error.message}`);
+        },
+      };
+    }
+    return handleCubeRequest(c, cubes, cacheConfig);
   });
 
   return app;
@@ -389,7 +427,7 @@ async function handleIngestProxy(c: QueryContext) {
 /**
  * Handle cube API request (via drizzle-cube)
  */
-async function handleCubeRequest(c: QueryContext, cubes: Cube[]) {
+async function handleCubeRequest(c: QueryContext, cubes: Cube[], cacheConfig?: CacheConfig) {
   // Check if DuckDB API is configured (Service Binding or URL)
   if (!c.env.DUCKDB_API && !c.env.DUCKDB_API_URL) {
     return c.json({ error: 'DuckDB API not configured' }, 500);
@@ -416,6 +454,7 @@ async function handleCubeRequest(c: QueryContext, cubes: Cube[]) {
     schema: { events },
     extractSecurityContext: async () => ({}),
     engineType: 'postgres',
+    cache: cacheConfig,
   });
 
   // Forward request to cube app
