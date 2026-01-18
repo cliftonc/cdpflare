@@ -74,12 +74,9 @@ async function initDuckDB() {
     await connection.run(`LOAD '/app/extensions/iceberg.duckdb_extension';`);
     console.log('[DUCKDB] iceberg loaded');
 
-    // DuckDB is ready for basic queries at this point
-    duckdbReady = true;
-    duckdbReadyResolve(); // Signal waiting requests
-    console.log('[DUCKDB] Basic initialization complete!');
+    console.log('[DUCKDB] Extensions loaded, configuring R2 catalog...');
 
-    // Configure R2 catalog if credentials are provided (optional - failures won't block basic usage)
+    // Configure R2 catalog if credentials are provided
     const { R2_TOKEN, R2_ENDPOINT, R2_CATALOG } = process.env;
 
     if (R2_TOKEN && R2_ENDPOINT && R2_CATALOG) {
@@ -104,13 +101,16 @@ async function initDuckDB() {
         console.log('[DUCKDB] R2 catalog attached as r2_datalake');
       } catch (catalogError) {
         const msg = catalogError instanceof Error ? catalogError.message : String(catalogError);
-        console.error('[DUCKDB] R2 catalog attachment failed (DuckDB still usable):', msg);
+        console.error('[DUCKDB] R2 catalog attachment failed:', msg);
         initError = `R2 catalog unavailable: ${msg}`;
       }
     } else {
       console.log('[DUCKDB] R2 credentials not configured - running without catalog');
     }
 
+    // Mark DuckDB as ready AFTER catalog attachment attempt
+    duckdbReady = true;
+    duckdbReadyResolve(); // Signal waiting requests
     console.log('[DUCKDB] Initialization complete!');
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
