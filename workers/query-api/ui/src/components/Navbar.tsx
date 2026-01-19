@@ -2,7 +2,7 @@ import { useState } from 'react';
 import TokenInput from './TokenInput.tsx';
 import ThemeToggle from './ThemeToggle.tsx';
 
-type Page = 'query' | 'duckdb' | 'simulator' | 'analysis' | 'dashboard';
+type Page = 'home' | 'query' | 'duckdb' | 'simulator' | 'analysis' | 'dashboard';
 
 interface NavbarProps {
   currentPage: Page;
@@ -22,17 +22,29 @@ export default function Navbar({ currentPage, onPageChange }: NavbarProps) {
   return (
     <div className="bg-base-100 shadow-lg border-b border-base-300">
       <div className="navbar container mx-auto max-w-7xl px-4">
-        {/* Left: Logo */}
+        {/* Left: Logo (clickable to home) */}
         <div className="navbar-start">
-          <img src="/logo.png" alt="icelight" className="h-10 w-auto" />
-          <span className="ml-2 text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-            icelight
-          </span>
+          <button
+            onClick={() => handlePageChange('home')}
+            className="flex items-center hover:opacity-80 transition-opacity"
+          >
+            <img src="/logo.png" alt="icelight" className="h-10 w-auto" />
+            <span className="ml-2 text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+              icelight
+            </span>
+          </button>
         </div>
 
         {/* Center: Tabs (hidden on mobile) */}
         <div className="navbar-center hidden md:flex">
           <div role="tablist" className="tabs tabs-boxed bg-base-200">
+            <button
+              role="tab"
+              className={`tab ${currentPage === 'home' ? 'tab-active' : ''}`}
+              onClick={() => handlePageChange('home')}
+            >
+              Home
+            </button>
             <button
               role="tab"
               className={`tab ${currentPage === 'analysis' ? 'tab-active' : ''}`}
@@ -103,6 +115,13 @@ export default function Navbar({ currentPage, onPageChange }: NavbarProps) {
         >
           <div className="p-4 flex flex-col gap-4 h-full">
             <div role="tablist" className="tabs tabs-boxed bg-base-200 flex-col items-start gap-2">
+              <button
+                role="tab"
+                className={`tab w-full justify-start ${currentPage === 'home' ? 'tab-active' : ''}`}
+                onClick={() => handlePageChange('home')}
+              >
+                Home
+              </button>
               <button
                 role="tab"
                 className={`tab w-full justify-start ${currentPage === 'analysis' ? 'tab-active' : ''}`}

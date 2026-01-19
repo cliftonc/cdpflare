@@ -21,7 +21,7 @@ interface KVCacheEntry<T> {
 export interface CloudflareKVProviderOptions {
   /**
    * Default TTL in milliseconds
-   * @default 3600000 (60 minutes)
+   * @default 300000 (5 minutes)
    */
   defaultTtlMs?: number
 }
@@ -47,7 +47,7 @@ export class CloudflareKVProvider implements CacheProvider {
 
   constructor(kv: KVNamespace, options: CloudflareKVProviderOptions = {}) {
     this.kv = kv
-    this.defaultTtlMs = options.defaultTtlMs ?? 3600000 // 60 minutes
+    this.defaultTtlMs = options.defaultTtlMs ?? 300000 // 5 minutes
   }
 
   /**

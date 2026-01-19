@@ -158,6 +158,9 @@ importers:
 
   workers/query-api:
     dependencies:
+      '@icelight/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       '@icelight/query':
         specifier: workspace:*
         version: link:../../packages/query

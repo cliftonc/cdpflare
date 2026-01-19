@@ -25,6 +25,7 @@ export function createEventsCube(config: CubeJsonConfig = DEFAULT_CUBE_CONFIG): 
   return defineCube('Events', {
     title: 'Analytics Events',
     description: 'RudderStack/Segment compatible analytics events',
+    public: true,
 
     meta: {
       eventStream: {

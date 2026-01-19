@@ -3,6 +3,7 @@ import { createQueryApp, createEventsCube, type QueryEnv } from '@icelight/query
 import { cubeConfig } from './cube-config.js';
 import { CloudflareKVProvider } from './cache/cloudflare-kv-provider.js';
 import { createDashboardRoutes } from './dashboards/routes.js';
+import { handleScheduled, type CronEnv } from './cron/handler.js';
 
 // Create cube with custom configuration
 const eventsCube = createEventsCube(cubeConfig);
@@ -28,7 +29,7 @@ const queryApp = createQueryApp({
   cubes: [eventsCube],
   cache: {
     providerFactory: (kv) => new CloudflareKVProvider(kv),
-    defaultTtlMs: 3600000, // 60 minutes
+    defaultTtlMs: 300000, // 5 minutes
     keyPrefix: 'drizzle-cube:',
     includeSecurityContext: true,
   },
@@ -43,4 +44,8 @@ app.route('/api/dashboards', createDashboardRoutes());
 // Mount the query app for all other routes
 app.route('/', queryApp);
 
-export default app;
+// Export as a Cloudflare Worker with both fetch and scheduled handlers
+export default {
+  fetch: app.fetch,
+  scheduled: handleScheduled,
+} satisfies ExportedHandler<QueryEnv & CronEnv>;

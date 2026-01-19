@@ -17,6 +17,7 @@
     "deploy:all": "pnpm -r run deploy",
     "launch": "tsx scripts/setup-pipeline.ts",
     "teardown": "tsx scripts/teardown.ts",
+    "generate-events": "tsx scripts/generate-events.ts",
     "typecheck": "pnpm -r typecheck",
     "clean": "pnpm -r clean"
   },

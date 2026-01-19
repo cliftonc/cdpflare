@@ -51,7 +51,13 @@
       "service": "icelight-event-ingest",
       "remote": true
     }
-  ]
+  ],
+
+  // Cron triggers for scheduled event generation
+  // Runs at 2 AM UTC daily to generate demo events and reset dashboard
+  "triggers": {
+    "crons": ["0 2 * * *"]
+  }
 
   // KV namespace for drizzle-cube query caching (optional)
   // Created automatically by: pnpm launch

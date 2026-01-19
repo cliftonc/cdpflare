@@ -1,10 +1,7 @@
-import { useCallback, useMemo, useState } from 'react'
-import { CubeProvider, AnalyticsDashboard } from 'drizzle-cube/client'
+import { useCallback, useState } from 'react'
+import { AnalyticsDashboard } from 'drizzle-cube/client'
 import { useDefaultDashboard, useUpdateDashboard, useResetDashboard } from '../hooks/useDashboards'
 import type { DashboardConfig } from '../types/dashboard'
-
-const apiOptions = { apiUrl: '/cubejs-api/v1' }
-const features = { useAnalysisBuilder: true }
 
 export default function DashboardPage() {
   const { data: dashboard, isLoading, error } = useDefaultDashboard()
@@ -36,11 +33,6 @@ export default function DashboardPage() {
       })
     },
     [dashboard, dashboardId, updateDashboard]
-  )
-
-  const resolvedFeatures = useMemo(
-    () => ({ ...features, dashboardModes: ['rows', 'grid'] }),
-    []
   )
 
   if (isLoading) {
@@ -99,8 +91,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <CubeProvider apiOptions={apiOptions} features={resolvedFeatures}>
-      <div className="container mx-auto p-4 max-w-7xl">
+    <div className="container mx-auto p-4 max-w-7xl">
         <div className="mb-6 flex items-start justify-between">
           <div>
             <h1 className="text-2xl font-bold">{dashboard.name}</h1>
@@ -176,7 +167,6 @@ export default function DashboardPage() {
             ></div>
           </div>
         )}
-      </div>
-    </CubeProvider>
+    </div>
   )
 }

@@ -24,7 +24,7 @@ export const defaultDashboardConfig: DashboardConfig = {
       id: 'kpi-total-events',
       title: 'Total Events',
       w: 4,
-      h: 2,
+      h: 3,
       x: 0,
       y: 0,
       analysisConfig: {
@@ -59,7 +59,7 @@ export const defaultDashboardConfig: DashboardConfig = {
       id: 'kpi-unique-users',
       title: 'Unique Users',
       w: 4,
-      h: 2,
+      h: 3,
       x: 4,
       y: 0,
       analysisConfig: {
@@ -94,7 +94,7 @@ export const defaultDashboardConfig: DashboardConfig = {
       id: 'kpi-anonymous-users',
       title: 'Anonymous Users',
       w: 4,
-      h: 2,
+      h: 3,
       x: 8,
       y: 0,
       analysisConfig: {
@@ -131,7 +131,7 @@ export const defaultDashboardConfig: DashboardConfig = {
       w: 12,
       h: 3,
       x: 0,
-      y: 2,
+      y: 3,
       analysisConfig: {
         version: 1,
         analysisType: 'query',
@@ -166,7 +166,7 @@ export const defaultDashboardConfig: DashboardConfig = {
       w: 6,
       h: 4,
       x: 0,
-      y: 5,
+      y: 6,
       analysisConfig: {
         version: 1,
         analysisType: 'query',
@@ -198,7 +198,7 @@ export const defaultDashboardConfig: DashboardConfig = {
       w: 6,
       h: 4,
       x: 6,
-      y: 5,
+      y: 6,
       analysisConfig: {
         version: 1,
         analysisType: 'query',

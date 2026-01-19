@@ -15,6 +15,7 @@
     "db:migrate": "wrangler d1 migrations apply icelight-dashboards --local -c wrangler.local.jsonc"
   },
   "dependencies": {
+    "@icelight/core": "workspace:*",
     "@icelight/query": "workspace:*",
     "drizzle-cube": "^0.3.10",
     "drizzle-orm": "^0.44.0",
