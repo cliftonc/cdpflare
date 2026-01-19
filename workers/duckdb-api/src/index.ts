@@ -45,7 +45,7 @@ interface Env {
  * and request proxying automatically.
  */
 export class DuckDBContainer extends PkgContainer<Env> {
-  constructor(ctx: DurableObjectState, env: Env) {
+  constructor(ctx: DurableObjectState<Env>, env: Env) {
     super(ctx, env);
 
     const envConfig: Record<string, string> = {};

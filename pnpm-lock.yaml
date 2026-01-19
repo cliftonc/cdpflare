@@ -39,6 +39,9 @@ importers:
       '@types/node':
         specifier: ^20.11.0
         version: 20.19.30
+      esbuild:
+        specifier: ^0.27.2
+        version: 0.27.2
       tsx:
         specifier: ^4.7.0
         version: 4.21.0
@@ -250,6 +253,7 @@ packages:
 
   '@duckdb/node-bindings-darwin-arm64@1.4.2-r.1':
     resolution: {integrity: sha512-C4yBI3zBX7iZ9iq8zJDvPatXA+2xM22sg1kX3fx76nG+qTqKtU/dGFVYL7Fx6cBYxBO1ZZ8Y+vjgYb6/bich8A==}
+    cpu: [arm64]
     os: [darwin]
 
   '@duckdb/node-bindings-darwin-arm64@1.4.3-r.3':

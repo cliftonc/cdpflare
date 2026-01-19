@@ -20,6 +20,7 @@ const app = new Hono();
 // Track initialization status
 let initError: string | null = null;
 let duckdbReady = false;
+let instance: any = null;
 let connection: any = null;
 let r2CatalogAttached = false;
 
@@ -53,8 +54,11 @@ async function initDuckDB() {
     console.log('[DUCKDB] Import successful');
 
     console.log('[DUCKDB] Creating instance...');
-    const instance = await DuckDBInstance.create(':memory:', {});
-    console.log('[DUCKDB] Instance created');
+    instance = await DuckDBInstance.create('/tmp/duckdb.db', {
+      threads: '2',              // Allow parallelism within DuckDB
+      memory_limit: '128MB',     // Lower limit, let DuckDB spill to disk for large queries
+    });
+    console.log('[DUCKDB] Instance created with file-backed storage');
 
     console.log('[DUCKDB] Connecting...');
     connection = await instance.connect();
@@ -200,11 +204,6 @@ app.post('/query', async (c) => {
       }, 400);
     }
 
-    // Ensure default catalog+schema is set before each query (in case context was reset)
-    if (r2CatalogAttached) {
-      await connection.run(`USE r2_datalake.analytics;`);
-    }
-
     const reader = await connection.runAndReadAll(body.query);
     return c.json({
       success: true,
@@ -237,15 +236,19 @@ const server = serve({
   });
 });
 
-// Graceful shutdown
+// Graceful shutdown with DuckDB cleanup
 process.on('SIGINT', () => {
   console.log('[SHUTDOWN] SIGINT received');
+  if (connection) connection.close();
+  if (instance) instance.close();
   server.close();
   process.exit(0);
 });
 
 process.on('SIGTERM', () => {
   console.log('[SHUTDOWN] SIGTERM received');
+  if (connection) connection.close();
+  if (instance) instance.close();
   server.close();
   process.exit(0);
 });

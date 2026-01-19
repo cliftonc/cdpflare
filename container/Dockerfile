@@ -1,4 +1,4 @@
-# Build stage
+# Build stage - only install native DuckDB module
 FROM node:20-bookworm-slim AS builder
 WORKDIR /app
 
@@ -12,17 +12,12 @@ RUN apt-get update && apt-get install -y \
     g++ \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy package files
-COPY package.json ./
+# Create minimal package.json for DuckDB native module only
+# (other deps are bundled by esbuild in the pre-built dist/index.js)
+RUN echo '{"name":"icelight-duckdb-container","type":"module","dependencies":{"@duckdb/node-api":"^1.4.3-r.3"}}' > package.json
 
-# Install dependencies
+# Install only DuckDB (native module)
 RUN pnpm install
-
-# Copy source code
-COPY . .
-
-# Build TypeScript
-RUN pnpm run build
 
 # Production stage
 FROM node:20-bookworm-slim
@@ -35,10 +30,11 @@ RUN adduser --system --uid 1001 hono
 # Install ca-certificates for HTTPS requests
 RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
 
-# Copy built files and production dependencies
-COPY --from=builder --chown=hono:nodejs /app/dist ./dist
+# Copy DuckDB native module from builder
 COPY --from=builder --chown=hono:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=hono:nodejs /app/package.json ./
+
+# Copy pre-built bundled code (built locally with esbuild, bundles hono + sql-guard)
+COPY --chown=hono:nodejs dist/index.js ./dist/index.js
 
 # Copy pre-built DuckDB extensions
 COPY --chown=hono:nodejs extensions/ ./extensions/
