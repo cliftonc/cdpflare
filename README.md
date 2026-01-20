@@ -59,7 +59,7 @@ Enter a project name when prompted. The script will:
 - Deploy the Query API worker (this is the same code as https://try.icelight.dev)
 - Deploy the DuckDB container and API
 
-Once complete, you'll see your worker URLs.
+Once complete, you'll see your worker URLs.  You can run this again if you see any issues, as it inspects your cloudflare environment and will attempt to resolve any changes.
 
 ### 4. Open the Web UI
 
