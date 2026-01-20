@@ -56,8 +56,8 @@ Enter a project name when prompted. The script will:
 - Create an R2 bucket with Data Catalog enabled
 - Create and configure the Pipeline (stream, sink, pipeline)
 - Deploy the Event Ingest worker
-- Deploy the Query API worker (with secrets configured)
-- Optionally deploy the DuckDB API worker
+- Deploy the Query API worker (this is the same code as https://try.icelight.dev)
+- Deploy the DuckDB container and API
 
 Once complete, you'll see your worker URLs.
 
