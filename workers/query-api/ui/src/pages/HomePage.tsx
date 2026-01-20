@@ -281,7 +281,7 @@ export default function HomePage({ onNavigate }: HomePageProps) {
                   Define measures and dimensions once, use them everywhere.
                 </p>
                 <a
-                  href="https://www.npmjs.com/package/drizzle-cube"
+                  href="https://try.drizzle-cube.dev"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-sm text-primary hover:underline"
@@ -442,7 +442,7 @@ analytics.track('Purchase Completed', { revenue: 99.99 });`}
               R2 Data Catalog
             </a>
             <a
-              href="https://www.npmjs.com/package/drizzle-cube"
+              href="https://try.drizzle-cube.dev"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-base-content transition-colors"
