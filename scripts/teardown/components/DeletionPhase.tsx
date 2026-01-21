@@ -351,15 +351,39 @@ function buildDeletionTasks(
     group: 'storage',
     skip: () => (options.keepBucket ? 'Bucket preserved (--keep-bucket)' : false),
     task: async (ctx: DeletionContext) => {
-      // Empty bucket first
+      // Empty bucket first (required before deletion)
       if (ctx.apiToken && ctx.authInfo.accountId) {
         await emptyBucket(ctx.config.bucketName, ctx.apiToken, ctx.authInfo.accountId);
       }
-      // Delete bucket
-      const result = await deleteBucket(ctx.config.bucketName);
-      if (result.success && !result.notFound) {
-        ctx.updateDeleted(() => ({ bucket: true }));
+
+      // Try to delete bucket, retry if still has content
+      let attempts = 0;
+      const maxAttempts = 3;
+
+      while (attempts < maxAttempts) {
+        const result = await deleteBucket(ctx.config.bucketName);
+
+        if (result.success) {
+          if (!result.notFound) {
+            ctx.updateDeleted(() => ({ bucket: true }));
+          }
+          return;
+        }
+
+        // Check if error is due to bucket not being empty
+        if (result.error?.includes('not empty') || result.error?.includes('BucketNotEmpty')) {
+          attempts++;
+          if (attempts < maxAttempts && ctx.apiToken && ctx.authInfo.accountId) {
+            // Try emptying again
+            await emptyBucket(ctx.config.bucketName, ctx.apiToken, ctx.authInfo.accountId);
+          }
+        } else {
+          // Different error, don't retry
+          throw new Error(result.error || 'Failed to delete bucket');
+        }
       }
+
+      throw new Error('Bucket still not empty after multiple attempts');
     },
   });
 

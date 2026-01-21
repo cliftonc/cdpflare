@@ -22,30 +22,32 @@ export function createEmptyResourceIds(): ResourceIds {
 }
 
 /**
+ * Check if a single worker exists
+ */
+async function checkWorkerExists(workerName: string): Promise<boolean> {
+  const output = await runQuietAsync(`wrangler deployments list --name "${workerName}"`);
+  // If we get output with "Created:" it means the worker has deployments
+  return output !== null && output.includes('Created:');
+}
+
+/**
  * Look up which workers exist from wrangler
+ * Checks each worker individually in parallel
  */
 export async function lookupExistingWorkers(workerNames: string[]): Promise<Set<string>> {
   const existing = new Set<string>();
-  const output = await runQuietAsync('wrangler deployments list --json');
 
-  if (output) {
-    try {
-      // wrangler deployments list returns an array of deployment objects
-      const deployments = JSON.parse(output) as Array<{ scriptName?: string; script_name?: string }>;
-      for (const deployment of deployments) {
-        const name = deployment.scriptName || deployment.script_name;
-        if (name && workerNames.includes(name)) {
-          existing.add(name);
-        }
-      }
-    } catch {
-      // Failed to parse JSON, try line-based parsing as fallback
-      const lines = output.split('\n');
-      for (const name of workerNames) {
-        if (lines.some(line => line.includes(name))) {
-          existing.add(name);
-        }
-      }
+  // Check all workers in parallel
+  const results = await Promise.all(
+    workerNames.map(async (name) => ({
+      name,
+      exists: await checkWorkerExists(name),
+    }))
+  );
+
+  for (const { name, exists } of results) {
+    if (exists) {
+      existing.add(name);
     }
   }
 
