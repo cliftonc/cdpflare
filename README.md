@@ -75,9 +75,21 @@ The Web UI includes:
 - **DuckDB**: Full SQL support (JOINs, aggregations, window functions)
 - **Event Simulator**: Send test events using the RudderStack SDK
 
-## SDK Integration
+### 5. Finished?
+
+If for any reason you thought this was interesting, but not that useful (I'd love to know why via an [issue](https://github.com/cliftonc/icelight/issues/new?template=BLANK_ISSUE)), you can clean up:
+
+```
+pnpm teardown
+```
+
+This command will remove everything created in your Cloudflare account, including any data loaded into the bucket.
+
+## Client SDK Integration
 
 ### RudderStack / Segment
+
+Icelight simply uses the open source Analytics.js library (from Segment and Rudderstack).
 
 ```javascript
 import { Analytics } from '@rudderstack/analytics-js';
@@ -92,6 +104,8 @@ analytics.identify('user-123', { email: 'user@example.com', plan: 'premium' });
 ```
 
 ### Direct HTTP
+
+You can also send messages directly, e.g. from your backend:
 
 ```bash
 # Track event
@@ -152,6 +166,8 @@ Connect PyIceberg, DuckDB, or Spark to your R2 Data Catalog. See [Cloudflare R2 
 
 ### Ingestion Worker
 
+Thes are the standard Analytics.js endpoints:
+
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/v1/batch` | POST | Batch events (primary) |
@@ -171,13 +187,17 @@ Connect PyIceberg, DuckDB, or Spark to your R2 Data Catalog. See [Cloudflare R2 
 | `/duckdb` | POST | Execute DuckDB query (full SQL) |
 | `/tables/:namespace` | GET | List tables in namespace |
 | `/tables/:namespace/:table` | GET | Describe table schema |
-| `/cubejs-api/v1/meta` | GET | Get semantic layer metadata |
-| `/cubejs-api/v1/load` | POST | Execute semantic query |
+| `/cubejs-api/v1/meta` | GET | Get Cube-js compatible semantic layer metadata |
+| `/cubejs-api/v1/load` | POST | Execute Cube-js compatible semantic query |
 | `/health` | GET | Health check |
 
 ## Development
 
 ```bash
+# Run setup
+pnpm install
+pnpm launch
+
 # Run ingest worker locally
 pnpm dev:ingest
 
@@ -190,6 +210,8 @@ pnpm build
 # Type check
 pnpm typecheck
 ```
+
+The DuckDB container does not work locally, as there is no current local solution for Cloudflare Containers.  Note that the Ingest and Query workers connect to remote infrastructure in Cloudflare.
 
 ## Cleanup
 
