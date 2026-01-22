@@ -49,7 +49,7 @@ export default function QueryPage() {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch('/query', {
+    const response = await fetch('/api/query', {
       method: 'POST',
       headers,
       body: JSON.stringify({ sql, format: 'csv' }),

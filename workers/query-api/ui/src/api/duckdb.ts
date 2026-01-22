@@ -22,7 +22,7 @@ async function executeDuckDbQuery(request: DuckDbQueryRequest): Promise<DuckDbQu
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const response = await fetch('/duckdb', {
+  const response = await fetch('/api/duckdb', {
     method: 'POST',
     headers,
     body: JSON.stringify(request),
@@ -75,7 +75,7 @@ export async function exportDuckDbCsv(sql: string): Promise<Blob> {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const response = await fetch('/duckdb', {
+  const response = await fetch('/api/duckdb', {
     method: 'POST',
     headers,
     body: JSON.stringify({ sql, format: 'csv' }),

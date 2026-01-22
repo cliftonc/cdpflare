@@ -22,7 +22,7 @@ async function executeQuery(request: QueryRequest): Promise<QueryResult> {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const response = await fetch('/query', {
+  const response = await fetch('/api/query', {
     method: 'POST',
     headers,
     body: JSON.stringify(request),
@@ -92,7 +92,7 @@ function getAuthHeaders(): Record<string, string> {
 }
 
 async function fetchTables(namespace: string): Promise<TableInfo[]> {
-  const response = await fetch(`/tables/${namespace}`, {
+  const response = await fetch(`/api/tables/${namespace}`, {
     headers: getAuthHeaders(),
   });
 
@@ -109,7 +109,7 @@ async function fetchTables(namespace: string): Promise<TableInfo[]> {
 }
 
 async function fetchTableSchema(namespace: string, table: string): Promise<ColumnInfo[]> {
-  const response = await fetch(`/tables/${namespace}/${table}`, {
+  const response = await fetch(`/api/tables/${namespace}/${table}`, {
     headers: getAuthHeaders(),
   });
 

@@ -30,7 +30,7 @@ export function useDuckDbHealth() {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await fetch('/duckdb/_health', { headers });
+      const response = await fetch('/api/duckdb/_health', { headers });
       if (!response.ok) {
         throw new Error(`Health check failed: ${response.status}`);
       }
