@@ -434,6 +434,108 @@ interface HomePageProps {
 
 export default function HomePage({ onNavigate }: HomePageProps) {
   const [sdkTab, setSdkTab] = useState<'rudderstack' | 'http'>('rudderstack');
+  const faqSections = [
+    {
+      title: 'Ingestion & Architecture',
+      items: [
+        {
+          question: 'How do I send Analytics.js events from RudderStack or Segment into Icelight?',
+          answer:
+            'Point your Analytics.js or RudderStack data plane to the ingest worker URL, keep your existing track/identify calls, and we normalize them to the Iceberg schema before batching to R2.',
+        },
+        {
+          question: 'What role does the Cloudflare Worker play?',
+          answer:
+            'The Worker is the public edge endpoint: it terminates analytics calls, validates payloads, handles CORS/auth, and forwards clean events into Cloudflare Pipelines so you do not expose R2 directly.',
+        },
+        {
+          question: 'How do Cloudflare Pipelines help with stream analytics?',
+          answer:
+            'Pipelines buffer high-volume events, batch them efficiently, and write Apache Iceberg-compatible Parquet objects to R2. They handle retries and backpressure so your ingest endpoint stays fast.',
+        },
+        {
+          question: 'How much setup is required to pilot this?',
+          answer:
+            'You need a Cloudflare account, an R2 bucket, and the Pipelines+Containers betas enabled. Clone the repo, run pnpm launch, and point a test site or RudderStack source at the ingest endpoint.',
+        },
+      ],
+    },
+    {
+      title: 'Storage: Iceberg + Parquet on R2',
+      items: [
+        {
+          question: 'What is Apache Iceberg and why use it on Cloudflare R2?',
+          answer:
+            'Apache Iceberg is an open table format for large analytics datasets. On R2 it keeps metadata in Iceberg manifests, stores columns in Parquet, and lets you time-travel or evolve schemas without rewriting objects.',
+        },
+        {
+          question: 'How are Iceberg tables organized for streaming analytics?',
+          answer:
+            'Events land as immutable Parquet files partitioned by date/hour and bucketed by user identifiers. Iceberg metadata tracks snapshots so readers only scan the latest manifests rather than every object in the bucket.',
+        },
+        {
+          question: 'Why choose Iceberg tables over raw Parquet for stream analytics?',
+          answer:
+            'Iceberg adds ACID semantics, partition pruning, hidden partitioning, and versioned snapshots. That keeps queries predictable as your event volume grows and avoids listing millions of R2 objects.',
+        },
+        {
+          question: 'How does Parquet fit into Iceberg on R2 and how should I size files?',
+          answer:
+            'Iceberg stores data files as Parquet objects referenced by manifests. Aim for 64–256 MB Parquet files to balance read parallelism with metadata overhead; enable compaction to merge tiny files. Use column pruning and predicate pushdown (DuckDB does both) to minimize bytes read and keep R2 egress low.',
+        },
+        {
+          question: 'How do I keep costs low on R2 + Iceberg?',
+          answer:
+            'Use partitioning to prune scans, compact small Parquet files via Pipelines’ batching, cache common queries with DuckDB result caching, and expire old snapshots while keeping critical checkpoints for time-travel.',
+        },
+      ],
+    },
+    {
+      title: 'Query & Semantic Layer',
+      items: [
+        {
+          question: 'How does DuckDB query the Iceberg data stored on R2?',
+          answer:
+            'DuckDB in a Cloudflare Container mounts R2 via presigned URLs, reads Iceberg metadata, and pushes down projections and filters. You get full SQL (joins, window functions) even while R2 SQL beta is limited.',
+        },
+        {
+          question: 'Can I run SQL over streaming analytics data in near real-time?',
+          answer:
+            'Yes. Pipelines flush small batches frequently so new objects appear within minutes. DuckDB or the semantic API can query the latest Iceberg snapshot for ad-hoc analysis or dashboard refreshes.',
+        },
+        {
+          question: 'What does the Drizzle-Cube semantic layer add?',
+          answer:
+            'Drizzle-Cube turns business metrics into reusable measures and dimensions. It generates optimized SQL against Iceberg/DuckDB, enforces row-level security, and feeds both dashboards and APIs from one model.',
+        },
+        {
+          question: 'How does the semantic API differ from running raw SQL?',
+          answer:
+            'The semantic API sits in front of DuckDB: clients request metrics like “weekly active users” and Drizzle-Cube compiles safe SQL with filters and joins. This prevents leaky queries and keeps KPI logic consistent.',
+        },
+        {
+          question: 'Can I mix Iceberg with other data sources?',
+          answer:
+            'Yes. DuckDB can attach additional Parquet/CSV files or remote tables, and Drizzle-Cube can model joins between your Iceberg events and product metadata to enrich analytics without moving data out of R2.',
+        },
+      ],
+    },
+    {
+      title: 'Use Cases & Platform Status',
+      items: [
+        {
+          question: 'What about Cloudflare Web Analytics—how is this different?',
+          answer:
+            'Cloudflare Web Analytics is a hosted product. Icelight is a build-it-yourself stack that keeps raw events in your R2 account so you can model custom events, join to product data, and control retention.',
+        },
+        {
+          question: 'Are the Cloudflare services used here in beta?',
+          answer:
+            'Yes—Pipelines, Containers, and R2 SQL are still in beta. Expect limits (throughput caps, evolving schemas, region availability) and breaking changes. Keep environments versioned, pin Wrangler, and test snapshots before production rollout.',
+        },
+      ],
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-base-100">
@@ -863,6 +965,49 @@ cd icelight && pnpm install`}
               open an issue
             </a>.
           </p>
+        </div>
+      </section>
+
+      {/* FAQ / SEO Content */}
+      <section id="faq" className="py-16 px-4">
+        <div className="container mx-auto max-w-4xl">
+          <h2 className="text-2xl font-bold text-center mb-4">Apache Iceberg on R2 FAQ</h2>
+          <p className="text-center text-base-content/60 max-w-2xl mx-auto mb-6">
+            Deep-dive answers for the queries we see most: Apache Iceberg, Iceberg tables on R2,
+            DuckDB, RudderStack, Cloudflare Workers, Pipelines, and the Drizzle-Cube semantic layer.
+          </p>
+          <div className="grid gap-6 md:gap-8 md:grid-cols-2">
+            {faqSections.map((section, sectionIdx) => (
+              <div
+                key={section.title}
+                className={`border border-base-300 rounded-xl overflow-hidden ${
+                  sectionIdx % 2 === 0 ? 'bg-base-100/70' : 'bg-base-200/60'
+                }`}
+              >
+                <div className="px-4 md:px-5 py-3 border-b border-base-300/70 bg-primary/10 flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-base-content">{section.title}</h3>
+                  <span className="text-[11px] font-medium px-2 py-1 rounded-full bg-primary/20 text-primary">
+                    FAQ
+                  </span>
+                </div>
+                <div className="divide-y divide-base-300/70">
+                  {section.items.map((faq) => (
+                    <details key={faq.question} className="group p-4 md:p-5">
+                      <summary className="flex items-center justify-between cursor-pointer text-base font-semibold text-base-content">
+                        <span>{faq.question}</span>
+                        <span className="ml-3 text-sm text-primary group-open:rotate-45 transition-transform">
+                          +
+                        </span>
+                      </summary>
+                      <p className="mt-3 text-sm leading-relaxed text-base-content/70">
+                        {faq.answer}
+                      </p>
+                    </details>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
