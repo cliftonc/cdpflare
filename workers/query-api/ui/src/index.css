@@ -214,58 +214,6 @@ html.dark {
 }
 
 /* ============================================================================
-   Responsive Utility Overrides
-   Force responsive utilities that are missing or overridden in Tailwind v4
-   when combined with drizzle-cube's pre-compiled CSS.
-   (Pattern from guideai project)
-   ============================================================================ */
-
-@layer utilities {
-  /* SVG fill utilities for drizzle-cube chart labels */
-  .fill-dc-text {
-    fill: var(--dc-text);
-  }
-  .fill-dc-text-secondary {
-    fill: var(--dc-text-secondary);
-  }
-  .fill-dc-text-muted {
-    fill: var(--dc-text-muted);
-  }
-
-  @media (min-width: 768px) {
-    /* Grid - QueryPage and DuckDbPage sidebar layout */
-    .md\:grid-cols-\[25\%_1fr\] {
-      grid-template-columns: 25% 1fr;
-    }
-
-    /* Standard grid patterns */
-    .md\:grid-cols-2 {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-    .md\:grid-cols-3 {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-    .md\:grid-cols-4 {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
-
-    /* Flex */
-    .md\:flex {
-      display: flex;
-    }
-    .md\:hidden {
-      display: none;
-    }
-    .md\:flex-row {
-      flex-direction: row;
-    }
-    .md\:items-center {
-      align-items: center;
-    }
-  }
-}
-
-/* ============================================================================
    Prism.js Syntax Highlighting - Theme Aware
    Uses our DaisyUI theme colors for both light and dark modes
    ============================================================================ */
